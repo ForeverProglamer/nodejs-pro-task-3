@@ -1,0 +1,38 @@
+{
+  "name": "ecommerce-data-layer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "start:prod": "node dist/main.js",
+    "db:generate": "typeorm-ts-node-commonjs -d data-source.ts migration:generate",
+    "db:migrate": "typeorm-ts-node-commonjs -d data-source.ts migration:run",
+    "db:revert": "typeorm-ts-node-commonjs -d data-source.ts migration:revert",
+    "db:seed": "ts-node -r tsconfig-paths/register src/seed/seed.ts",
+    "migration:run": "npm run db:migrate",
+    "seed": "npm run db:seed",
+    "concurrency:test": "ts-node -r tsconfig-paths/register scripts/concurrency-test.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.3",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.3",
+    "@nestjs/platform-express": "^11.1.3",
+    "@nestjs/typeorm": "^11.0.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.7",
+    "@nestjs/schematics": "^11.0.5",
+    "@types/node": "^24.0.4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3"
+  }
+}
