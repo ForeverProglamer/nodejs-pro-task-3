@@ -35,6 +35,11 @@ export class OrdersService {
       const products = await productsRepo.find({
         where: { id: In(dto.items.map((i) => i.id)) },
       });
+      if (products.length !== dto.items.length) {
+        throw new Error(
+          `Some products can not be found: ${dto.items.length - products.length} product(s) missing`,
+        );
+      }
       console.log({ products });
       const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
       const order = await ordersRepo.save({
@@ -42,15 +47,28 @@ export class OrdersService {
         idempotencyKey,
       });
       console.log({ order });
-      const items = await orderItemsRepo.save(
-        products.map((p) => ({
+
+      const partialItems: Partial<OrderItem>[] = [];
+      for (const p of products) {
+        const askedQty = dtoIdToQty.get(p.id) as number;
+        if (p.stock < askedQty) {
+          throw new Error(
+            `Product ${p.id} does not have enough of stock: required ${askedQty}, stock ${p.stock}`,
+          );
+        }
+        partialItems.push({
           orderId: order.id,
           productId: p.id,
-          qty: dtoIdToQty.get(p.id) ?? 0,
+          qty: askedQty,
           purchasePrice: p.price,
-        })),
-      );
+        });
+        p.stock -= askedQty;
+      }
+      const items = await orderItemsRepo.save(partialItems);
+      const updatedProducts = await productsRepo.save(products);
       console.log({ items });
+      console.log({ updatedProducts });
+
       return await ordersRepo.findOne({
         where: { id: order.id },
         relations: { items: true },
