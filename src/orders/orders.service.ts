@@ -18,41 +18,43 @@ export class OrdersService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
+  createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
     console.log(`[${new Date().toISOString()}]:INFO:Initiating order creation`);
     console.log({ dto, idempotencyKey });
+    return this.dataSource.transaction(async (mngr) => {
+      const ordersRepo = mngr.getRepository(Order);
+      const productsRepo = mngr.getRepository(Product);
+      const orderItemsRepo = mngr.getRepository(OrderItem);
 
-    const existingOrder = await this.ordersRepo.findOne({
-      where: { userId: dto.userId, idempotencyKey },
-      relations: { items: true },
-    });
-    if (existingOrder) return existingOrder;
+      const existingOrder = await ordersRepo.findOne({
+        where: { userId: dto.userId, idempotencyKey },
+        relations: { items: true },
+      });
+      if (existingOrder) return existingOrder;
 
-    const products = await this.productsRepo.find({
-      where: { id: In(dto.items.map((i) => i.id)) },
+      const products = await productsRepo.find({
+        where: { id: In(dto.items.map((i) => i.id)) },
+      });
+      console.log({ products });
+      const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
+      const order = await ordersRepo.save({
+        userId: dto.userId,
+        idempotencyKey,
+      });
+      console.log({ order });
+      const items = await orderItemsRepo.save(
+        products.map((p) => ({
+          orderId: order.id,
+          productId: p.id,
+          qty: dtoIdToQty.get(p.id) ?? 0,
+          purchasePrice: p.price,
+        })),
+      );
+      console.log({ items });
+      return await ordersRepo.findOne({
+        where: { id: order.id },
+        relations: { items: true },
+      });
     });
-    console.log({ products });
-    const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
-
-    const order = await this.ordersRepo.save({
-      userId: dto.userId,
-      idempotencyKey,
-    });
-    console.log({ order });
-    const items = await this.orderItemsRepo.save(
-      products.map((p) => ({
-        orderId: order.id,
-        productId: p.id,
-        qty: dtoIdToQty.get(p.id) ?? 0,
-        purchasePrice: p.price,
-      })),
-    );
-    console.log({ items });
-
-    const latestOrder = await this.ordersRepo.findOne({
-      where: { id: order.id },
-      relations: { items: true },
-    });
-    return latestOrder;
   }
 }
