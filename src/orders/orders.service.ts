@@ -21,13 +21,23 @@ export class OrdersService {
   async createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
     console.log(`[${new Date().toISOString()}]:INFO:Initiating order creation`);
     console.log({ dto, idempotencyKey });
+
+    const existingOrder = await this.ordersRepo.findOne({
+      where: { userId: dto.userId, idempotencyKey },
+      relations: { items: true },
+    });
+    if (existingOrder) return existingOrder;
+
     const products = await this.productsRepo.find({
       where: { id: In(dto.items.map((i) => i.id)) },
     });
     console.log({ products });
     const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
 
-    const order = await this.ordersRepo.save({ userId: dto.userId });
+    const order = await this.ordersRepo.save({
+      userId: dto.userId,
+      idempotencyKey,
+    });
     console.log({ order });
     const items = await this.orderItemsRepo.save(
       products.map((p) => ({

@@ -8,6 +8,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from "typeorm";
 
@@ -21,6 +22,7 @@ export enum OrderStatus {
 }
 
 @Entity("orders")
+@Unique("UQ_orders_user_id_idempotency_key", ["userId", "idempotencyKey"])
 export default class Order {
   @PrimaryGeneratedColumn("uuid", { primaryKeyConstraintName: "PK_orders_id" })
   id: UUID;
@@ -43,6 +45,9 @@ export default class Order {
     nullable: false,
   })
   status: OrderStatus;
+
+  @Column({ name: "idempotency_key", type: "uuid", nullable: false })
+  idempotencyKey: UUID;
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz", utc: true })
   createdAt: Date;
