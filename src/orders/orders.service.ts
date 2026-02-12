@@ -6,6 +6,10 @@ import Order from "./order.entity";
 import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
 import { InjectRepository } from "@nestjs/typeorm";
+import {
+  CannotFindProductsError,
+  NotEnoughItemsInStockError,
+} from "src/common/errors";
 
 @Injectable()
 export class OrdersService {
@@ -35,11 +39,9 @@ export class OrdersService {
       const products = await productsRepo.find({
         where: { id: In(dto.items.map((i) => i.id)) },
       });
-      if (products.length !== dto.items.length) {
-        throw new Error(
-          `Some products can not be found: ${dto.items.length - products.length} product(s) missing`,
-        );
-      }
+      if (products.length !== dto.items.length)
+        throw new CannotFindProductsError(dto.items.length - products.length);
+
       console.log({ products });
       const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
       const order = await ordersRepo.save({
@@ -51,11 +53,9 @@ export class OrdersService {
       const partialItems: Partial<OrderItem>[] = [];
       for (const p of products) {
         const askedQty = dtoIdToQty.get(p.id) as number;
-        if (p.stock < askedQty) {
-          throw new Error(
-            `Product ${p.id} does not have enough of stock: required ${askedQty}, stock ${p.stock}`,
-          );
-        }
+        if (p.stock < askedQty)
+          throw new NotEnoughItemsInStockError(p.id, askedQty, p.stock);
+
         partialItems.push({
           orderId: order.id,
           productId: p.id,
