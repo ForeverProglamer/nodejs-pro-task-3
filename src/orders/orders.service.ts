@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { DataSource, In, Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import Order from "./order.entity";
 import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
@@ -36,9 +36,12 @@ export class OrdersService {
       });
       if (existingOrder) return existingOrder;
 
-      const products = await productsRepo.find({
-        where: { id: In(dto.items.map((i) => i.id)) },
-      });
+      const dtoProductIds = [...new Set(dto.items.map((i) => i.id))];
+      const products = await productsRepo
+        .createQueryBuilder("product")
+        .where("product.id IN (:...ids)", { ids: dtoProductIds })
+        .setLock("pessimistic_write")
+        .getMany();
       if (products.length !== dto.items.length)
         throw new CannotFindProductsError(dto.items.length - products.length);
 
