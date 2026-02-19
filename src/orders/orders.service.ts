@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { DataSource, Repository } from "typeorm";
-import Order from "./order.entity";
+import { Between, DataSource, Repository } from "typeorm";
+import Order, { OrderStatus } from "./order.entity";
 import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -76,6 +76,17 @@ export class OrdersService {
         where: { id: order.id },
         relations: { items: true },
       });
+    });
+  }
+
+  list(status: OrderStatus, from?: Date, to?: Date) {
+    const between = from
+      ? to
+        ? Between(from, to)
+        : Between(from, new Date())
+      : undefined;
+    return this.ordersRepo.find({
+      where: { status, createdAt: between },
     });
   }
 }
