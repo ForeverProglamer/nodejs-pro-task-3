@@ -79,14 +79,38 @@ export class OrdersService {
     });
   }
 
-  list(status: OrderStatus, from?: Date, to?: Date) {
-    const between = from
-      ? to
-        ? Between(from, to)
-        : Between(from, new Date())
-      : undefined;
-    return this.ordersRepo.find({
-      where: { status, createdAt: between },
-    });
+  list(userId: UUID, status: OrderStatus, from?: Date, to?: Date) {
+    let qb = this.ordersRepo
+      .createQueryBuilder("orders")
+      .select(["orders.id", "orders.status", "orders.createdAt"])
+      .leftJoin("orders.items", "items")
+      .addSelect([
+        "items.orderId",
+        "items.productId",
+        "items.qty",
+        "items.purchasePrice",
+      ])
+      .where("orders.userId = :userId", { userId })
+      .andWhere("orders.status = :status", { status });
+
+    if (from) {
+      qb.andWhere("orders.createdAt >= :from", { from });
+    }
+    if (to) {
+      qb.andWhere("orders.createdAt <= :to", { to });
+    }
+    console.log(qb.getSql());
+    return qb.getMany();
+  }
+
+  toDto(orders: Order[]) {
+    return orders.map((o) => ({
+      ...o,
+      items: o.items.map((i) => ({
+        productId: i.productId,
+        qty: i.qty,
+        purchasePrice: i.purchasePrice,
+      })),
+    }));
   }
 }

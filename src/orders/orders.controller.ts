@@ -10,6 +10,7 @@ import {
   InternalServerErrorException,
   ParseDatePipe,
   ParseEnumPipe,
+  ParseUUIDPipe,
   Post,
   Query,
 } from "@nestjs/common";
@@ -37,7 +38,8 @@ export class OrdersController {
   }
 
   @Get()
-  list(
+  async list(
+    @Query("userId", ParseUUIDPipe) userId: UUID, // TODO: Infer from JWT
     @Query(
       "status",
       new DefaultValuePipe(OrderStatus.CREATED),
@@ -49,10 +51,12 @@ export class OrdersController {
   ) {
     const inspect = <T>(val: T) => ({ value: val, type: typeof val });
     console.log({
+      userId: inspect(userId),
       status: inspect(status),
       from: inspect(from),
       to: inspect(to),
     });
-    return this.ordersService.list(status, from, to);
+    const orders = await this.ordersService.list(userId, status, from, to);
+    return this.ordersService.toDto(orders);
   }
 }
