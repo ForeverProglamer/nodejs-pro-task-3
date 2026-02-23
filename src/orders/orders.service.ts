@@ -80,7 +80,7 @@ export class OrdersService {
   }
 
   list(userId: UUID, status: OrderStatus, from?: Date, to?: Date) {
-    let qb = this.ordersRepo
+    const qb = this.ordersRepo
       .createQueryBuilder("orders")
       .select(["orders.id", "orders.status", "orders.createdAt"])
       .leftJoin("orders.items", "items")
