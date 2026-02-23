@@ -1,5 +1,38 @@
 # Task 3
 
+## Transactions
+
+To guarantee atomicity of order creation as a single unit `dataSource.transaction(...)`
+method is used. This method ensures that DB operations will be commited within a single
+transaction, otherwise, in case of an exception, everything will be rolled back.
+
+With this transactional approach we ensure that no partial writes can occur and
+our state is consistent in any given point in time.
+
+## Idempotency
+
+To prevent a double submission problem POST /orders endpoint requires a client
+to send a special HTTP header called "Idempotency-Key". Conceptually, client
+is responsible for creating, storing and sending an unique identifier
+(generated with UUIDv4) to a server, so that the server can spot a double submission
+of an order. This identifier lives for as long as client session lives, and once
+it has successfully been submitted to server, server stores it in DB along with
+other order-related information.
+
+The first successful request with "Idempotency-Key" header creates an order and saves
+idempotency key as an `idempotency_key` column of the `orders` table. Database schema
+is designed to ensure uniqueness of (user_id, idempotency_key) pair.
+Any subsequent request with the same value of "Idempotency-Key" header returns
+an already created order.
+
+## Concurrency
+
+As a response to oversell problem during order creation, a pessimistic locking of DB
+rows was choosen. The idea is to prevent concurrent reads and writes from other users requests reading rows
+of the `products` table, while these rows are processed by our business logic within the order
+creation use-case. Basically, we assume that there are lots of concurrent requests that 
+want to mutate the same products, so we lock our products data with 
+"pessimistic_write" lock to prevent race conditions between those requests.
 
 ## SQL Optimization
 
