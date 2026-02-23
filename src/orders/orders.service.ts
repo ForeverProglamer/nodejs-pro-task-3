@@ -79,7 +79,14 @@ export class OrdersService {
     });
   }
 
-  list(userId: UUID, status: OrderStatus, from?: Date, to?: Date) {
+  list(
+    userId: UUID,
+    status: OrderStatus,
+    page: number,
+    limit: number,
+    from?: Date,
+    to?: Date,
+  ) {
     const qb = this.ordersRepo
       .createQueryBuilder("orders")
       .select(["orders.id", "orders.status", "orders.createdAt"])
@@ -91,7 +98,10 @@ export class OrdersService {
         "items.purchasePrice",
       ])
       .where("orders.userId = :userId", { userId })
-      .andWhere("orders.status = :status", { status });
+      .andWhere("orders.status = :status", { status })
+      .orderBy("orders.createdAt", "DESC")
+      .take(limit)
+      .skip((page - 1) * limit);
 
     if (from) {
       qb.andWhere("orders.createdAt >= :from", { from });

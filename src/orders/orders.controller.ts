@@ -10,6 +10,7 @@ import {
   InternalServerErrorException,
   ParseDatePipe,
   ParseEnumPipe,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Query,
@@ -46,6 +47,8 @@ export class OrdersController {
       new ParseEnumPipe(OrderStatus),
     )
     status: OrderStatus,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query("from", new ParseDatePipe({ optional: true })) from?: Date,
     @Query("to", new ParseDatePipe({ optional: true })) to?: Date,
   ) {
@@ -55,8 +58,17 @@ export class OrdersController {
       status: inspect(status),
       from: inspect(from),
       to: inspect(to),
+      page: inspect(page),
+      limit: inspect(limit),
     });
-    const orders = await this.ordersService.list(userId, status, from, to);
+    const orders = await this.ordersService.list(
+      userId,
+      status,
+      page,
+      limit,
+      from,
+      to,
+    );
     return this.ordersService.toDto(orders);
   }
 }
