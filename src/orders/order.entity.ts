@@ -22,6 +22,7 @@ export enum OrderStatus {
 }
 
 @Entity("orders")
+@Index("IX_orders_user_id_status_created_at", ["userId", "status", "createdAt"])
 @Unique("UQ_orders_user_id_idempotency_key", ["userId", "idempotencyKey"])
 export default class Order {
   @PrimaryGeneratedColumn("uuid", { primaryKeyConstraintName: "PK_orders_id" })
