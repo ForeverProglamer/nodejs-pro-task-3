@@ -1,31 +1,31 @@
 import { Injectable } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { Between, DataSource, Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import Order, { OrderStatus } from "./order.entity";
 import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   CannotFindProductsError,
+  FailedToCreateOrderError,
   NotEnoughItemsInStockError,
 } from "src/common/errors";
+import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
+import { ProcessOrderMessageDto } from "./order-processed-message.dto";
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
-    @InjectRepository(OrderItem)
-    private readonly orderItemsRepo: Repository<OrderItem>,
-    @InjectRepository(Product)
-    private readonly productsRepo: Repository<Product>,
     private readonly dataSource: DataSource,
+    private readonly rabbitmq: RabbitMqService,
   ) {}
 
-  createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
+  async createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
     console.log(`[${new Date().toISOString()}]:INFO:Initiating order creation`);
     console.log({ dto, idempotencyKey });
-    return this.dataSource.transaction(async (mngr) => {
+    const created = await this.dataSource.transaction(async (mngr) => {
       const ordersRepo = mngr.getRepository(Order);
       const productsRepo = mngr.getRepository(Product);
       const orderItemsRepo = mngr.getRepository(OrderItem);
@@ -77,6 +77,17 @@ export class OrdersService {
         relations: { items: true },
       });
     });
+
+    if (!created) {
+      throw new FailedToCreateOrderError();
+    }
+
+    this.rabbitmq.send(
+      "orders.process",
+      new ProcessOrderMessageDto(created.id, created.id),
+    );
+
+    return created;
   }
 
   list(
