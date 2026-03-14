@@ -9,6 +9,10 @@ import { ConfigService } from "@nestjs/config";
 import { Channel, ChannelModel } from "amqplib";
 import * as amqplib from "amqplib";
 
+export type Message = Record<string, any> & {
+  messageId: string;
+};
+
 @Injectable()
 export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger: Logger = new Logger(RabbitMqService.name);
@@ -55,11 +59,36 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  send(queue: string, message: Record<string, any>): boolean {
+  send(queue: string, message: Message): boolean {
     return this.getChannel().sendToQueue(
       queue,
       Buffer.from(JSON.stringify(message)),
-      { persistent: true },
+      { persistent: true, messageId: message.messageId },
+    );
+  }
+
+  async consume<T extends Message>(
+    queue: string,
+    handler: (msg: T, ack: () => void) => Promise<void>,
+  ) {
+    const channel = this.getChannel();
+    await channel.consume(
+      queue,
+      async (msg) => {
+        if (!msg) return;
+        try {
+          const message = JSON.parse(msg.content.toString());
+          await handler(message, () => channel.ack(msg, false));
+        } catch (error) {
+          this.logger.error(
+            `Unhandled worker error in queue '${queue}': ${error.stack}`,
+          );
+          try {
+            channel.reject(msg, true);
+          } catch {}
+        }
+      },
+      { noAck: false },
     );
   }
 }

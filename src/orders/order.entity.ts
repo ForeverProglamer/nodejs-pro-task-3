@@ -18,6 +18,7 @@ import type OrderItem from "./order-item.entity";
 export enum OrderStatus {
   CREATED = "created",
   CANCELED = "canceled",
+  PROCESSED = "processed",
   PAID = "paid",
 }
 
@@ -55,6 +56,14 @@ export default class Order {
 
   @UpdateDateColumn({ name: "updated_at", type: "timestamptz", utc: true })
   updatedAt: Date;
+
+  @Column({
+    name: "processed_at",
+    type: "timestamptz",
+    utc: true,
+    nullable: true,
+  })
+  processedAt: Date | null;
 
   @OneToMany("OrderItem", (item: OrderItem) => item.order)
   items: OrderItem[];

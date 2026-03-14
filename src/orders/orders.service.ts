@@ -30,6 +30,7 @@ export class OrdersService {
       const productsRepo = mngr.getRepository(Product);
       const orderItemsRepo = mngr.getRepository(OrderItem);
 
+      // IDEA: better to let query fail to not
       const existingOrder = await ordersRepo.findOne({
         where: { userId: dto.userId, idempotencyKey },
         relations: { items: true },
@@ -82,12 +83,25 @@ export class OrdersService {
       throw new FailedToCreateOrderError();
     }
 
+    // BUG: posts a message to broker for existing order (the same idempotencyKey)
     this.rabbitmq.send(
       "orders.process",
       new ProcessOrderMessageDto(created.id, created.id),
     );
 
     return created;
+  }
+
+  async processOrderMessage(orderId: UUID) {
+    const delay = (seconds: number) =>
+      new Promise((res) => setTimeout(res, seconds * 1000));
+
+    await delay(2);
+
+    await this.ordersRepo.update(
+      { id: orderId },
+      { id: orderId, status: OrderStatus.PROCESSED, processedAt: new Date() },
+    );
   }
 
   list(
