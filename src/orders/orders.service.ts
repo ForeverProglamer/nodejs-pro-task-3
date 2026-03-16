@@ -12,7 +12,7 @@ import {
   NotEnoughItemsInStockError,
 } from "src/common/errors";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
-import { ProcessOrderMessageDto } from "./order-processed-message.dto";
+import { ProcessOrderMessageDto } from "./process-order-message.dto";
 
 @Injectable()
 export class OrdersService {
@@ -92,7 +92,15 @@ export class OrdersService {
     return created;
   }
 
-  async processOrderMessage(orderId: UUID) {
+  async processOrderMessage(msg: ProcessOrderMessageDto) {
+    if (msg.simulateFailure) {
+      // Debug-only
+      const { reason, stopOnAttempt } = msg.simulateFailure;
+      if (stopOnAttempt === msg.attempt) return;
+      throw new Error(reason);
+    }
+
+    const { orderId } = msg;
     const delay = (seconds: number) =>
       new Promise((res) => setTimeout(res, seconds * 1000));
 

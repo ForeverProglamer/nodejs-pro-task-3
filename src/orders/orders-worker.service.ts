@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
 import { OrdersService } from "./orders.service";
 import { AckCallback, RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
-import { ProcessOrderMessageDto } from "./order-processed-message.dto";
+import { ProcessOrderMessageDto } from "./process-order-message.dto";
 import { ConfigService } from "@nestjs/config";
 import { parseBoolean } from "src/common/utils";
 
@@ -32,12 +32,55 @@ export class OrdersWorkerService implements OnApplicationBootstrap {
     this.logger.log(`Worker has been initialized`);
   }
 
-  async handle(msg: ProcessOrderMessageDto, ack: AckCallback) {
-    this.logger.log(`Received a message ${msg}`);
+  protected async handle(msg: ProcessOrderMessageDto, ack: AckCallback) {
+    this.logger.log(
+      `Received a message '${msg.messageId}' attempt=${msg.attempt}`,
+      msg,
+    );
 
-    await this.ordersService.processOrderMessage(msg.orderId);
-    ack();
+    try {
+      await this.ordersService.processOrderMessage(msg);
+      ack();
+    } catch (error) {
+      this.logger.error(
+        `Failed to process message '${msg.messageId}' attempt=${msg.attempt} due to ${error.stack}`,
+        msg,
+      );
+      this.handleFailedProcessing(msg, ack);
+      return;
+    }
 
-    this.logger.log(`Message has been processed ${msg}`);
+    this.logger.log(
+      `Message '${msg.messageId}' attempt=${msg.attempt} has been processed`,
+      msg,
+    );
+  }
+
+  protected handleFailedProcessing(
+    msg: ProcessOrderMessageDto,
+    ack: AckCallback,
+  ) {
+    const { maxRetries, backoffSeconds } = this.getConfig();
+
+    if (msg.attempt >= maxRetries) {
+      this.logger.log(`Message '${msg.messageId}' is sent to DLQ`);
+      this.rabbitmq.send("orders.dlq", msg);
+      ack();
+      return;
+    }
+
+    this.logger.log(
+      `Scheduling message '${msg.messageId}' retry after ${backoffSeconds} seconds`,
+    );
+    setTimeout(() => {
+      this.rabbitmq.send("orders.process", {
+        ...msg,
+        attempt: msg.attempt + 1,
+      });
+      ack();
+      this.logger.log(
+        `Message '${msg.messageId}' was posted to queue for retry`,
+      );
+    }, backoffSeconds * 1000);
   }
 }
