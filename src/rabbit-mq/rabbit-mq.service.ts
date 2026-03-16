@@ -13,6 +13,8 @@ export type Message = Record<string, any> & {
   messageId: string;
 };
 
+export type AckCallback = () => void;
+
 @Injectable()
 export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private readonly logger: Logger = new Logger(RabbitMqService.name);
@@ -69,7 +71,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
 
   async consume<T extends Message>(
     queue: string,
-    handler: (msg: T, ack: () => void) => Promise<void>,
+    handler: (msg: T, ack: AckCallback) => Promise<void>,
   ) {
     const channel = this.getChannel();
     await channel.consume(

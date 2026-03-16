@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
 import { OrdersService } from "./orders.service";
-import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
+import { AckCallback, RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { ProcessOrderMessageDto } from "./order-processed-message.dto";
 
 @Injectable()
@@ -17,7 +17,7 @@ export class OrdersWorkerService implements OnApplicationBootstrap {
     this.logger.log(`Worker has been initialized`);
   }
 
-  async handle(msg: ProcessOrderMessageDto, ack: VoidFunction) {
+  async handle(msg: ProcessOrderMessageDto, ack: AckCallback) {
     this.logger.log(`Received a message ${msg}`);
 
     await this.ordersService.processOrderMessage(msg.orderId);
