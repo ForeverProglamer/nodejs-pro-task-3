@@ -7,10 +7,11 @@ import Order from "./order.entity";
 import OrderItem from "./order-item.entity";
 import { RabbitMqModule } from "src/rabbit-mq/rabbit-mq.module";
 import { OrdersWorkerService } from "./orders-worker.service";
+import ProcessedMessage from "src/common/processed-message.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, Order, OrderItem]),
+    TypeOrmModule.forFeature([Product, Order, OrderItem, ProcessedMessage]),
     RabbitMqModule,
   ],
   controllers: [OrdersController],

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, EntityManager, Repository } from "typeorm";
 import Order, { OrderStatus } from "./order.entity";
 import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
@@ -13,6 +13,7 @@ import {
 } from "src/common/errors";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { ProcessOrderMessageDto } from "./process-order-message.dto";
+import { sleep } from "src/common/utils";
 
 @Injectable()
 export class OrdersService {
@@ -30,7 +31,6 @@ export class OrdersService {
       const productsRepo = mngr.getRepository(Product);
       const orderItemsRepo = mngr.getRepository(OrderItem);
 
-      // IDEA: better to let query fail to not
       const existingOrder = await ordersRepo.findOne({
         where: { userId: dto.userId, idempotencyKey },
         relations: { items: true },
@@ -73,17 +73,17 @@ export class OrdersService {
       console.log({ items });
       console.log({ updatedProducts });
 
-      return await ordersRepo.findOne({
+      const created = await ordersRepo.findOne({
         where: { id: order.id },
         relations: { items: true },
       });
+      if (!created) {
+        throw new FailedToCreateOrderError();
+      }
+      return created;
     });
 
-    if (!created) {
-      throw new FailedToCreateOrderError();
-    }
-
-    // BUG: posts a message to broker for existing order (the same idempotencyKey)
+    // NOTE: posts a message to broker for existing order (the same idempotencyKey)
     this.rabbitmq.send(
       "orders.process",
       new ProcessOrderMessageDto(created.id, created.id),
@@ -92,21 +92,20 @@ export class OrdersService {
     return created;
   }
 
-  async processOrderMessage(msg: ProcessOrderMessageDto) {
+  async processOrderMessage(
+    msg: ProcessOrderMessageDto,
+    manager: EntityManager,
+  ) {
+    await sleep(2);
     if (msg.simulateFailure) {
       // Debug-only
       const { reason, stopOnAttempt } = msg.simulateFailure;
       if (stopOnAttempt === msg.attempt) return;
       throw new Error(reason);
     }
-
+    const ordersRepo = manager.getRepository(Order);
     const { orderId } = msg;
-    const delay = (seconds: number) =>
-      new Promise((res) => setTimeout(res, seconds * 1000));
-
-    await delay(2);
-
-    await this.ordersRepo.update(
+    await ordersRepo.update(
       { id: orderId },
       { id: orderId, status: OrderStatus.PROCESSED, processedAt: new Date() },
     );

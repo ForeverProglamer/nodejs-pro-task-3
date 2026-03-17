@@ -10,3 +10,6 @@ export const parseBoolean = (value: string): boolean => {
     );
   return truthyBooleans.has(prepared);
 };
+
+export const sleep = (seconds: number) =>
+  new Promise((res) => setTimeout(res, seconds * 1000));

@@ -4,6 +4,8 @@ import { AckCallback, RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { ProcessOrderMessageDto } from "./process-order-message.dto";
 import { ConfigService } from "@nestjs/config";
 import { parseBoolean } from "src/common/utils";
+import { DataSource } from "typeorm";
+import ProcessedMessage from "src/common/processed-message.entity";
 
 @Injectable()
 export class OrdersWorkerService implements OnApplicationBootstrap {
@@ -13,6 +15,7 @@ export class OrdersWorkerService implements OnApplicationBootstrap {
     private readonly ordersService: OrdersService,
     private readonly rabbitmq: RabbitMqService,
     private readonly configService: ConfigService,
+    private readonly datasource: DataSource,
   ) {}
 
   getConfig() {
@@ -39,8 +42,7 @@ export class OrdersWorkerService implements OnApplicationBootstrap {
     );
 
     try {
-      await this.ordersService.processOrderMessage(msg);
-      ack();
+      await this.handleHappyPath(msg, ack);
     } catch (error) {
       this.logger.error(
         `Failed to process message '${msg.messageId}' attempt=${msg.attempt} due to ${error.stack}`,
@@ -49,11 +51,45 @@ export class OrdersWorkerService implements OnApplicationBootstrap {
       this.handleFailedProcessing(msg, ack);
       return;
     }
+  }
 
-    this.logger.log(
-      `Message '${msg.messageId}' attempt=${msg.attempt} has been processed`,
-      msg,
-    );
+  protected async handleHappyPath(
+    msg: ProcessOrderMessageDto,
+    ack: AckCallback,
+  ) {
+    const isProcessed = await this.datasource.transaction(async (manager) => {
+      const dedupRepo = manager.getRepository(ProcessedMessage);
+      try {
+        await dedupRepo.insert({
+          messageId: msg.messageId,
+          handler: OrdersWorkerService.name,
+        });
+      } catch (err) {
+        if (String(err?.code) === "23505") {
+          this.logger.debug(
+            `Duplicate delivery of message '${msg.messageId}' ` +
+              `attempt=${msg.attempt} detected`,
+            msg,
+          );
+          return false;
+        }
+        this.logger.error(
+          `Failed to insert dedup record: ${err?.stack ?? err}`,
+        );
+        throw err;
+      }
+      await this.ordersService.processOrderMessage(msg, manager);
+      return true;
+    });
+
+    ack();
+
+    if (isProcessed) {
+      this.logger.log(
+        `Message '${msg.messageId}' attempt=${msg.attempt} has been processed`,
+        msg,
+      );
+    }
   }
 
   protected handleFailedProcessing(
