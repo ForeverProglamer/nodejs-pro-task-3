@@ -111,6 +111,13 @@ export class OrdersService {
     );
   }
 
+  findById(id: UUID) {
+    return this.ordersRepo.findOne({
+      where: { id },
+      relations: { items: true },
+    });
+  }
+
   list(
     userId: UUID,
     status: OrderStatus,
