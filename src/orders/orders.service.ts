@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
 import { DataSource, EntityManager, Repository } from "typeorm";
@@ -17,6 +17,8 @@ import { sleep } from "src/common/utils";
 
 @Injectable()
 export class OrdersService {
+  private readonly logger: Logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
     private readonly dataSource: DataSource,
@@ -24,8 +26,7 @@ export class OrdersService {
   ) {}
 
   async createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
-    console.log(`[${new Date().toISOString()}]:INFO:Initiating order creation`);
-    console.log({ dto, idempotencyKey });
+    this.logger.log(`Initiating order creation`, { dto, idempotencyKey });
     const created = await this.dataSource.transaction(async (mngr) => {
       const ordersRepo = mngr.getRepository(Order);
       const productsRepo = mngr.getRepository(Product);
@@ -46,13 +47,13 @@ export class OrdersService {
       if (products.length !== dto.items.length)
         throw new CannotFindProductsError(dto.items.length - products.length);
 
-      console.log({ products });
+      this.logger.log({ products });
       const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
       const order = await ordersRepo.save({
         userId: dto.userId,
         idempotencyKey,
       });
-      console.log({ order });
+      this.logger.log({ order });
 
       const partialItems: Partial<OrderItem>[] = [];
       for (const p of products) {
@@ -70,8 +71,7 @@ export class OrdersService {
       }
       const items = await orderItemsRepo.save(partialItems);
       const updatedProducts = await productsRepo.save(products);
-      console.log({ items });
-      console.log({ updatedProducts });
+      this.logger.log({ items, updatedProducts });
 
       const created = await ordersRepo.findOne({
         where: { id: order.id },
@@ -148,7 +148,7 @@ export class OrdersService {
     if (to) {
       qb.andWhere("orders.createdAt <= :to", { to });
     }
-    console.log(qb.getSql());
+    this.logger.log(qb.getSql());
     return qb.getMany();
   }
 
