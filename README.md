@@ -42,6 +42,8 @@ The work queue itself is presented as:
   examining and manually processing
 * Both queues are created as `durable: true` and messages sent to them are marked
   as `persistent: true`
+* Exchanges: default ("")
+* Routing: default exchange -> queues by name
 * Current setup implements the "republish + ack" retry policy
 * Worker and retrying is configured by `WORKER_*` env vars provided in `.env.example`
 * For simplicity, current setup runs both producer (API, specifically `OrdersService.createOrder`)
