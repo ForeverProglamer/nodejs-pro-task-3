@@ -4,6 +4,7 @@ import User, { UserRole } from "../users/user.entity";
 import Product from "../products/product.entity";
 import Order, { OrderStatus } from "../orders/order.entity";
 import OrderItem from "../orders/order-item.entity";
+import { randomUUID } from "crypto";
 
 const productData = [
   {
@@ -110,6 +111,7 @@ async function seed() {
     if (!existingOrder) {
       order = orderRepo.create({
         user,
+        idempotencyKey: randomUUID(),
       });
 
       await orderRepo.save(order);
