@@ -5,10 +5,16 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import Product from "src/products/product.entity";
 import Order from "./order.entity";
 import OrderItem from "./order-item.entity";
+import { RabbitMqModule } from "src/rabbit-mq/rabbit-mq.module";
+import { OrdersWorkerService } from "./orders-worker.service";
+import ProcessedMessage from "src/common/processed-message.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, Order, OrderItem])],
+  imports: [
+    TypeOrmModule.forFeature([Product, Order, OrderItem, ProcessedMessage]),
+    RabbitMqModule,
+  ],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrdersWorkerService],
 })
 export class OrdersModule {}

@@ -1,31 +1,33 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { Between, DataSource, Repository } from "typeorm";
+import { DataSource, EntityManager, Repository } from "typeorm";
 import Order, { OrderStatus } from "./order.entity";
 import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   CannotFindProductsError,
+  FailedToCreateOrderError,
   NotEnoughItemsInStockError,
 } from "src/common/errors";
+import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
+import { ProcessOrderMessageDto } from "./process-order-message.dto";
+import { sleep } from "src/common/utils";
 
 @Injectable()
 export class OrdersService {
+  private readonly logger: Logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
-    @InjectRepository(OrderItem)
-    private readonly orderItemsRepo: Repository<OrderItem>,
-    @InjectRepository(Product)
-    private readonly productsRepo: Repository<Product>,
     private readonly dataSource: DataSource,
+    private readonly rabbitmq: RabbitMqService,
   ) {}
 
-  createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
-    console.log(`[${new Date().toISOString()}]:INFO:Initiating order creation`);
-    console.log({ dto, idempotencyKey });
-    return this.dataSource.transaction(async (mngr) => {
+  async createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
+    this.logger.log(`Initiating order creation`, { dto, idempotencyKey });
+    const created = await this.dataSource.transaction(async (mngr) => {
       const ordersRepo = mngr.getRepository(Order);
       const productsRepo = mngr.getRepository(Product);
       const orderItemsRepo = mngr.getRepository(OrderItem);
@@ -45,13 +47,13 @@ export class OrdersService {
       if (products.length !== dto.items.length)
         throw new CannotFindProductsError(dto.items.length - products.length);
 
-      console.log({ products });
+      this.logger.log({ products });
       const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
       const order = await ordersRepo.save({
         userId: dto.userId,
         idempotencyKey,
       });
-      console.log({ order });
+      this.logger.log({ order });
 
       const partialItems: Partial<OrderItem>[] = [];
       for (const p of products) {
@@ -69,13 +71,50 @@ export class OrdersService {
       }
       const items = await orderItemsRepo.save(partialItems);
       const updatedProducts = await productsRepo.save(products);
-      console.log({ items });
-      console.log({ updatedProducts });
+      this.logger.log({ items, updatedProducts });
 
-      return await ordersRepo.findOne({
+      const created = await ordersRepo.findOne({
         where: { id: order.id },
         relations: { items: true },
       });
+      if (!created) {
+        throw new FailedToCreateOrderError();
+      }
+      return created;
+    });
+
+    // NOTE: posts a message to broker for existing order (the same idempotencyKey)
+    this.rabbitmq.send(
+      "orders.process",
+      new ProcessOrderMessageDto(created.id, created.id),
+    );
+
+    return created;
+  }
+
+  async processOrderMessage(
+    msg: ProcessOrderMessageDto,
+    manager: EntityManager,
+  ) {
+    await sleep(2);
+    if (msg.simulateFailure) {
+      // Debug-only
+      const { reason, stopOnAttempt } = msg.simulateFailure;
+      if (stopOnAttempt === msg.attempt) return;
+      throw new Error(reason);
+    }
+    const ordersRepo = manager.getRepository(Order);
+    const { orderId } = msg;
+    await ordersRepo.update(
+      { id: orderId },
+      { id: orderId, status: OrderStatus.PROCESSED, processedAt: new Date() },
+    );
+  }
+
+  findById(id: UUID) {
+    return this.ordersRepo.findOne({
+      where: { id },
+      relations: { items: true },
     });
   }
 
@@ -109,7 +148,7 @@ export class OrdersService {
     if (to) {
       qb.andWhere("orders.createdAt <= :to", { to });
     }
-    console.log(qb.getSql());
+    this.logger.log(qb.getSql());
     return qb.getMany();
   }
 

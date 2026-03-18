@@ -1,0 +1,20 @@
+meta {
+  name: Get Order By Id
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:3000/orders/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 943654ad-6bef-4b3f-981c-d02ea7cce96c
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

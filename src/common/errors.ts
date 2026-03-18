@@ -11,6 +11,15 @@ export abstract class DomainError extends Error {
   }
 }
 
+export class FailedToCreateOrderError extends DomainError {
+  readonly code = "FAILED_TO_CREATE_ORDER";
+  readonly httpStatus = 500;
+
+  constructor() {
+    super("Failed to create order", {});
+  }
+}
+
 export class CannotFindProductsError extends DomainError {
   readonly code = "CANNOT_FIND_PRODUCTS";
   readonly httpStatus = 404;

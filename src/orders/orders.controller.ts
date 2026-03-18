@@ -8,6 +8,8 @@ import {
   HttpCode,
   HttpStatus,
   InternalServerErrorException,
+  NotFoundException,
+  Param,
   ParseDatePipe,
   ParseEnumPipe,
   ParseIntPipe,
@@ -36,6 +38,13 @@ export class OrdersController {
     if (!order)
       throw new InternalServerErrorException("Failed to create order");
     return order;
+  }
+
+  @Get(":id")
+  async findById(@Param("id", ParseUUIDPipe) id: UUID) {
+    const result = await this.ordersService.findById(id);
+    if (!result) throw new NotFoundException("Order not found");
+    return this.ordersService.toDto([result])[0];
   }
 
   @Get()
