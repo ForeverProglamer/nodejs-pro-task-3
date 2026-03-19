@@ -1,5 +1,6 @@
 services:
   api:
+    profiles: [all, infra]
     build:
       context: .
       target: prod
@@ -19,6 +20,7 @@ services:
         condition: service_started
 
   postgres:
+    profiles: [all, infra]
     image: postgres:17.4-alpine3.21
     restart: unless-stopped
     environment:
@@ -35,6 +37,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   rabbitmq:
+    profiles: [all, infra]
     image: rabbitmq:4.2.4-management-alpine
     restart: unless-stopped
     hostname: message-broker
@@ -45,6 +48,7 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
 
   migrate:
+    profiles: [all, job, migrate]
     build:
       context: .
       target: build
@@ -55,6 +59,7 @@ services:
         condition: service_healthy
 
   seed:
+    profiles: [all, job, seed]
     build:
       context: .
       target: build
