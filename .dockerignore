@@ -7,3 +7,11 @@ dist
 
 *.log
 .env
+
+Dockerfile*
+.dockerignore
+*compose*.yml
+
+README.md
+docs/
+api-collection/
