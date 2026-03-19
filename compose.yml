@@ -18,6 +18,7 @@ services:
         condition: service_started
       migrate:
         condition: service_started
+    networks: [public, private]
 
   postgres:
     profiles: [all, infra]
@@ -35,6 +36,7 @@ services:
       timeout: 10s
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks: [private]
 
   rabbitmq:
     profiles: [all, infra]
@@ -46,6 +48,7 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-password}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    networks: [private]
 
   migrate:
     profiles: [all, job, migrate]
@@ -57,6 +60,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks: [private]
 
   seed:
     profiles: [all, job, seed]
@@ -68,7 +72,15 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    networks: [private]
 
 volumes:
   db_data:
   rabbitmq_data:
+
+networks:
+  private:
+    internal: true
+    driver: bridge
+  public:
+    driver: bridge
