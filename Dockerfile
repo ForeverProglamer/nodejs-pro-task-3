@@ -7,12 +7,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+
 # Stage 1b - Install only prod deps. Artifact: ./node_modules
 FROM node:24.13.0-bookworm-slim AS prod_deps
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm ci --omit=dev
+
 
 # Stage 2 - Build app for prod. Artifact: ./dist
 FROM deps AS build
@@ -21,6 +23,7 @@ WORKDIR /app
 COPY . ./
 
 RUN npm run build
+
 
 # Stage 3a - Dev container
 FROM deps AS dev
@@ -32,6 +35,7 @@ ENV NODE_ENV=development
 EXPOSE 3000
 CMD ["npm", "run", "start:dev"]
 
+
 # Stage 3b - Prod
 FROM prod_deps AS prod
 WORKDIR /app
@@ -42,3 +46,17 @@ COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 CMD ["node", "./dist/src/main.js"]
+
+
+# Stage 3c - Prod Distroless
+FROM gcr.io/distroless/nodejs24-debian13 AS prod_distroless
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
+
+EXPOSE 3000
+CMD ["./dist/src/main.js"]
