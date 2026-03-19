@@ -10,8 +10,13 @@ services:
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+        restart: true
+      rabbitmq:
+        condition: service_started
+      migrate:
+        condition: service_started
 
   postgres:
     image: postgres:17.4-alpine3.21
@@ -20,6 +25,12 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-nest_task3_db}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     volumes:
       - db_data:/var/lib/postgresql/data
 
@@ -32,6 +43,26 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-password}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+
+  migrate:
+    build:
+      context: .
+      target: build
+    command: npm run db:migrate
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    build:
+      context: .
+      target: build
+    command: npm run seed
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   db_data:
