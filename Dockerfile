@@ -44,12 +44,13 @@ ENV NODE_ENV=production
 
 COPY --from=build /app/dist ./dist
 
+USER node
 EXPOSE 3000
 CMD ["node", "./dist/src/main.js"]
 
 
 # Stage 3c - Prod Distroless
-FROM gcr.io/distroless/nodejs24-debian13 AS prod_distroless
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS prod_distroless
 WORKDIR /app
 
 ENV NODE_ENV=production
