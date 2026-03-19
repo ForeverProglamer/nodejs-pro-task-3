@@ -33,3 +33,5 @@ Available one-off jobs:
 
 `./api-collection` contains a couple of endpoints for API testing 
 that you can import.
+
+## CI/CD (Task 9)
