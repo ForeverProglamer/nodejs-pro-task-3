@@ -1,6 +1,5 @@
 services:
   api:
-    profiles: [all, infra]
     build:
       context: .
       target: prod
@@ -21,7 +20,6 @@ services:
     networks: [public, private]
 
   postgres:
-    profiles: [all, infra]
     image: postgres:17.4-alpine3.21
     restart: unless-stopped
     environment:
@@ -39,7 +37,6 @@ services:
     networks: [private]
 
   rabbitmq:
-    profiles: [all, infra]
     image: rabbitmq:4.2.4-management-alpine
     restart: unless-stopped
     hostname: message-broker
@@ -51,7 +48,6 @@ services:
     networks: [private]
 
   migrate:
-    profiles: [all, job, migrate]
     build:
       context: .
       target: build
@@ -64,7 +60,7 @@ services:
     networks: [private]
 
   seed:
-    profiles: [all, job, seed]
+    profiles: [seed]
     build:
       context: .
       target: build
