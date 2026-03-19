@@ -14,7 +14,8 @@ services:
         condition: service_healthy
         restart: true
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
+        restart: true
       migrate:
         condition: service_started
     networks: [public, private]
@@ -43,6 +44,12 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-user}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-password}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks: [private]
