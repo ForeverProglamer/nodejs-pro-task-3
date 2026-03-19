@@ -1,4 +1,18 @@
 services:
+  api:
+    build:
+      context: .
+      target: prod
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      - postgres
+      - rabbitmq
+
   postgres:
     image: postgres:17.4-alpine3.21
     restart: unless-stopped
@@ -6,8 +20,6 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-nest_task3_db}
-    ports:
-      - "${DB_PORT:-5432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
 
@@ -18,9 +30,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-user}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-password}
-    ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_WEB_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
