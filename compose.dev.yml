@@ -1,0 +1,31 @@
+services:
+  api:
+    build:
+      target: dev
+    command: npm run start:dev:docker
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app/ # Bind mount
+      # Volume to prevent node_modules from being overriden by host
+      - node_modules:/app/node_modules
+    tty: true
+    stdin_open: true
+    init: true
+
+  postgres:
+    ports:
+      - "${DB_PORT:-5432}:5432"
+
+  rabbitmq:
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_WEB_PORT:-15672}:15672"
+
+volumes:
+  node_modules:
+
+networks:
+  private:
+    # Service ports cannot be forwarded for internal networks.
+    internal: false
