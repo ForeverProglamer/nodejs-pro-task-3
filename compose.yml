@@ -17,7 +17,7 @@ services:
         condition: service_healthy
         restart: true
       migrate:
-        condition: service_started
+        condition: service_completed_successfully
     networks: [public, private]
 
   postgres:
