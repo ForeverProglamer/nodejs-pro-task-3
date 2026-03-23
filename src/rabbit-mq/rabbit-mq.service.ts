@@ -55,8 +55,21 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     try {
       await this.channel?.close();
+    } catch (error) {
+      // During hot reload, amqplib may already be in closing state.
+      if (!(error instanceof Error) || !error.message.includes("closing")) {
+        throw error;
+      }
     } finally {
-      await this.connection?.close();
+      try {
+        await this.connection?.close();
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes("closing")) {
+          throw error;
+        }
+      }
+      this.channel = null;
+      this.connection = null;
       this.logger.log("RabbitMq connection was closed");
     }
   }

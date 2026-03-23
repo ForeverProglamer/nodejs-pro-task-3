@@ -1,0 +1,17 @@
+.git
+.gitignore
+
+node_modules
+dist
+.nvmrc
+
+*.log
+.env
+
+Dockerfile*
+.dockerignore
+*compose*.yml
+
+README.md
+docs/
+api-collection/
