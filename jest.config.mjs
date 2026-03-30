@@ -3,6 +3,9 @@ export default {
   moduleFileExtensions: ["js", "json", "ts"],
   rootDir: ".",
   testRegex: ".*\\.spec\\.ts$",
+  moduleNameMapper: {
+    "^src/(.*)$": "<rootDir>/src/$1",
+  },
   transform: {
     "^.+\\.(t|j)s$": "ts-jest",
   },
