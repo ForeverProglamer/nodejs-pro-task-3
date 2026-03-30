@@ -22,7 +22,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "prod:db:migrate": "typeorm -d dist/data-source.js migration:run",
+    "prod:seed": "node dist/src/seed/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.3",
