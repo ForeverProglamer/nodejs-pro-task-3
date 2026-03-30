@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 const USER_ID = process.env.USER_ID;
 const PRODUCT_ID = process.env.PRODUCT_ID;
 
-const REQUESTS_COUNT = Number(process.env.REQUESTS_COUNT) ?? 10;
+const REQUESTS_COUNT = Number(process.env.REQUESTS_COUNT || "10");
 
 const BASE_URL = "http://localhost:3000";
 const BASE_HEADERS = {
@@ -46,7 +46,7 @@ async function sendRequests(): Promise<Response[]> {
 }
 
 function gatherStats(responses: Response[]): Record<string, number> {
-  let stats = { total: REQUESTS_COUNT };
+  const stats = { total: REQUESTS_COUNT };
   responses.forEach((res) => {
     const key = res.statusText.toLowerCase();
     if (!stats[key]) stats[key] = 1;

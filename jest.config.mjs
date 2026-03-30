@@ -1,5 +1,5 @@
 /** @type {import("jest").Config} **/
-module.exports = {
+export default {
   moduleFileExtensions: ["js", "json", "ts"],
   rootDir: ".",
   testRegex: ".*\\.spec\\.ts$",

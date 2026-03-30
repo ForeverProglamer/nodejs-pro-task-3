@@ -9,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 import { Channel, ChannelModel } from "amqplib";
 import * as amqplib from "amqplib";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Message = Record<string, any> & {
   messageId: string;
 };
@@ -65,7 +66,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         await this.connection?.close();
       } catch (error) {
         if (!(error instanceof Error) || !error.message.includes("closing")) {
-          throw error;
+          throw error; // eslint-disable-line no-unsafe-finally
         }
       }
       this.channel = null;
@@ -100,7 +101,9 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
           );
           try {
             channel.reject(msg, true);
-          } catch {}
+          } catch {
+            // continue regardless of error
+          }
         }
       },
       { noAck: false },
