@@ -47,12 +47,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
 
-      - name: Print 'build-and-push' outputs
-        run: |
-          echo ${{ steps.build-and-push.outputs.imageid }}
-          echo ${{ steps.build-and-push.outputs.digest }}
-          echo ${{ steps.build-and-push.outputs.metadata }}
-
       - name: Create realse-manifest.json
         run: |
           cat <<EOF > release-manifest.json
