@@ -47,13 +47,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
 
-      - name: Get image digest
-        id: digest
-        run: |
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }})
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-
-      - name: Print digest
+      - name: Print 'build-and-push' outputs
         run: |
           echo ${{ steps.build-and-push.outputs.imageid }}
           echo ${{ steps.build-and-push.outputs.digest }}
@@ -67,7 +61,7 @@ jobs:
             "services": {
               "api": {
                 "image": "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}",
-                "digest": "${{ steps.digest.outputs.digest }}"
+                "digest": "${{ steps.build-and-push.outputs.digest }}"
               }
             }
           }
