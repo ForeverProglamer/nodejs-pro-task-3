@@ -23,7 +23,8 @@ jobs:
       - name: Set metadata
         id: meta
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
+          IMAGE=ghcr.io/${{ github.repository }}/api
+          IMAGE=${IMAGE,,} # Convert my username to lowercase
           TAG=sha-${{ github.sha }}
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
@@ -44,7 +45,7 @@ jobs:
         with:
           target: prod
           push: true
-          tags: ${{ steps.meta.outputs.image }}/api:${{ steps.meta.outputs.tag }}
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
 
       - name: Get image digest
         id: digest
