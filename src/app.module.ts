@@ -5,7 +5,8 @@ import { UsersModule } from "./users/users.module";
 import { OrdersModule } from "./orders/orders.module";
 import { ProductsModule } from "./products/products.module";
 import { RabbitMqModule } from "./rabbit-mq/rabbit-mq.module";
-import { DebugModule } from './debug/debug.module';
+import { DebugModule } from "./debug/debug.module";
+import { AppController } from "./app.controller";
 
 @Module({
   imports: [
@@ -32,5 +33,6 @@ import { DebugModule } from './debug/debug.module';
     RabbitMqModule,
     DebugModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
