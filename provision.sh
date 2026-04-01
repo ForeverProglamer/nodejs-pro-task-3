@@ -1,6 +1,6 @@
 # Docker pre-installation: set up Apt repository
 apt-get update -yy
-apt-get install -yy ca-certificates curl
+apt-get install -yy ca-certificates curl jq
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 chmod a+r /etc/apt/keyrings/docker.asc
@@ -24,10 +24,15 @@ usermod -aG docker vagrant
 newgrp docker
 
 # Github actions runner installation
-mkdir actions-runner && cd actions-runner
 curl -o actions-runner-linux-x64-2.333.1.tar.gz -L https://github.com/actions/runner/releases/download/v2.333.1/actions-runner-linux-x64-2.333.1.tar.gz
-tar xzf ./actions-runner-linux-x64-2.333.1.tar.gz
-chown -hR vagrant:vagrant actions-runner/
+RUNNERS="stage production"
+for env in $RUNNERS
+do
+  DIR="actions-runner-$env"
+  mkdir "$DIR"
+  tar xzf ./actions-runner-linux-x64-2.333.1.tar.gz -C "$DIR"
+  chown -hR vagrant:vagrant "$DIR/"
+done
 
 # Configure and run
 # ./config.sh --url https://github.com/<owner>/<repo> --token <token>
