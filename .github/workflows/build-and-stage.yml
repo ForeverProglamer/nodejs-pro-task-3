@@ -67,9 +67,36 @@ jobs:
           name: release-manifest
           path: release-manifest.json
 
-  deploy:
-    name: Deploy to Stage Env
-    runs-on: ubuntu-24.04
+  deploy-stage:
     needs: build
+    runs-on: self-hosted
+    environment:
+      name: stage
+    env:
+      IMAGE: ${{ needs.build.outputs.image }}:${{ needs.build.outputs.tag }}
     steps:
-      - run: echo "Deploying..."
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Login to GitHub Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image from the registry
+        run: docker pull "$IMAGE"
+
+      - name: Deploy
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          IMAGE: "$IMAGE"
+        run: |
+          cp .env.example .env
+          echo "DB_PASSWORD=$DB_PASSWORD" >> .env
+          docker compose -f compose.prod.yml -p stage up -d
+
+      - name: Post-deploy test
+        run: |
+          curl -f http://localhost:3000/health || exit 1

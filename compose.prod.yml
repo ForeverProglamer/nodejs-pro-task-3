@@ -1,0 +1,90 @@
+services:
+  api:
+    image: ${IMAGE}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "${API_PORT}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      rabbitmq:
+        condition: service_healthy
+        restart: true
+      migrate:
+        condition: service_completed_successfully
+    networks: [public, private]
+
+  postgres:
+    image: postgres:17.4-alpine3.21
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks: [private]
+    secrets:
+      - postgres_password
+
+  rabbitmq:
+    image: rabbitmq:4.2.4-management-alpine
+    restart: unless-stopped
+    hostname: message-broker
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks: [private]
+
+  migrate:
+    image: ${IMAGE}
+    command: npm run prod:db:migrate
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    networks: [private]
+
+  seed:
+    profiles: [seed]
+    image: ${IMAGE}
+    command: npm run prod:seed
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [private]
+
+volumes:
+  db_data:
+  rabbitmq_data:
+
+networks:
+  private:
+    internal: true
+    driver: bridge
+  public:
+    driver: bridge
+
+secrets:
+  postgres_password:
+    environment: DB_PASSWORD
