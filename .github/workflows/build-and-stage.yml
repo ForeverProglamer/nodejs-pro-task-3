@@ -99,21 +99,8 @@ jobs:
           docker compose -f compose.prod.yml -p stage up -d
 
       - name: Post-deploy test
-        run: |
-          ATTEMPTS=8
-          SLEEP=2
-
-          for i in $(seq 1 $ATTEMPTS); do
-            echo "Attempt $i..."
-
-            if curl -sf http://localhost:${{ vars.API_PORT }}/health; then
-              echo "API is healthy"
-              exit 0
-            fi
-
-            echo "Not ready yet"
-            sleep $SLEEP
-          done
-
-          echo "API failed to become healthy"
-          exit 1
+        uses: ./.github/actions/wait-for-health
+        with:
+          url: http://localhost:${{ vars.API_PORT }}/health
+          attempts: 8
+          sleep: 2
