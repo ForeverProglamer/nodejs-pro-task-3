@@ -11,6 +11,7 @@ dist
 Dockerfile*
 .dockerignore
 *compose*.yml
+.vagrant
 
 README.md
 docs/
