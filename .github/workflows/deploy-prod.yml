@@ -2,6 +2,9 @@ name: Deploy to production env
 on:
   workflow_dispatch:
 
+concurrency:
+  group: production
+
 jobs:
   deploy-prod:
     runs-on: [self-hosted, production]
