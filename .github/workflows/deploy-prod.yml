@@ -46,12 +46,20 @@ jobs:
 
       - name: Post-deploy test
         run: |
-          curl \
-            --retry 5 \
-            --retry-delay 2 \
-            --retry-max-time 30 \
-            --fail \
-            --show-error \
-            --silent \
-          http://localhost:${{ vars.API_PORT }}/health || exit 1
+          ATTEMPTS=8
+          SLEEP=2
 
+          for i in $(seq 1 $ATTEMPTS); do
+            echo "Attempt $i..."
+
+            if curl -sf http://localhost:${{ vars.API_PORT }}/health; then
+              echo "API is healthy"
+              exit 0
+            fi
+
+            echo "Not ready yet"
+            sleep $SLEEP
+          done
+
+          echo "API failed to become healthy"
+          exit 1
