@@ -46,5 +46,12 @@ jobs:
 
       - name: Post-deploy test
         run: |
-          curl -f http://localhost:${{ vars.API_PORT }}/health || exit 1
+          curl \
+            --retry 5 \
+            --retry-delay 2 \
+            --retry-max-time 30 \
+            --fail \
+            --show-error \
+            --silent \
+          http://localhost:${{ vars.API_PORT }}/health || exit 1
 
