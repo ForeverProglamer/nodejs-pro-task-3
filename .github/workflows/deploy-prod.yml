@@ -1,6 +1,11 @@
 name: Deploy to production env
 on:
   workflow_dispatch:
+    inputs:
+      image:
+        description: 'Docker image from release-manifest.json'
+        required: true
+        type: string
 
 concurrency:
   group: production
@@ -14,19 +19,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Download release-manifest.json
-        uses: actions/download-artifact@v8
-        with:
-          name: release-manifest
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set metadata
-        id: meta
-        run: |
-          echo "Downloaded artifact:"
-          cat release-manifest.json
-          echo "image=$(jq .services.api.image release-manifest.json)" >> $GITHUB_OUTPUT
-
       - name: Login to GitHub Registry
         uses: docker/login-action@v4
         with:
@@ -35,7 +27,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull image from the registry
-        run: docker pull ${{ steps.meta.outputs.image }}
+        run: docker pull ${{ inputs.image }}
 
       - name: Deploy
         env:
