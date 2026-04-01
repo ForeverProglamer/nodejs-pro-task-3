@@ -28,7 +28,7 @@ runs:
             curl -v --fail "$URL" && exit 0
           else
             if curl --fail --show-error --silent "$URL"; then
-              echo "\nHealthy"
+              echo -e "\nHealthy"
               exit 0
             else
               echo "Not ready"
