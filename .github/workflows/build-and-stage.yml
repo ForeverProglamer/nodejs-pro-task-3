@@ -47,7 +47,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
 
-      - name: Create realse-manifest.json
+      - name: Create release-manifest.json
         run: |
           cat <<EOF > release-manifest.json
           {
