@@ -8,6 +8,7 @@ import { ConfigService } from "@nestjs/config";
 
 import { Channel, ChannelModel } from "amqplib";
 import * as amqplib from "amqplib";
+import { formatError } from "src/common/utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Message = Record<string, any> & {
@@ -97,12 +98,15 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
           await handler(message, () => channel.ack(msg, false));
         } catch (error) {
           this.logger.error(
-            `Unhandled worker error in queue '${queue}': ${error.stack}`,
+            `Unhandled worker error in queue '${queue}': ${formatError(error)}`,
           );
           try {
             channel.reject(msg, true);
-          } catch {
-            // continue regardless of error
+          } catch (e) {
+            this.logger.warn(
+              `Failed to reject a message in queue '${queue}'`,
+              +` message='${msg.content.toString()}' due to: ${formatError(e)}`,
+            );
           }
         }
       },
