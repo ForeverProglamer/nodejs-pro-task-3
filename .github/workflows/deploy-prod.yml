@@ -33,6 +33,7 @@ jobs:
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           API_PORT: ${{ vars.API_PORT }}
+          IMAGE: ${{ inputs.image }}
         run: |
           cp .env.example .env
           echo "DB_PASSWORD=$DB_PASSWORD" >> .env
