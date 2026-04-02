@@ -104,8 +104,8 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
             channel.reject(msg, true);
           } catch (e) {
             this.logger.warn(
-              `Failed to reject a message in queue '${queue}'`,
-              +` message='${msg.content.toString()}' due to: ${formatError(e)}`,
+              `Failed to reject a message in queue '${queue}'` +
+                ` message='${msg.content.toString()}' due to: ${formatError(e)}`,
             );
           }
         }
