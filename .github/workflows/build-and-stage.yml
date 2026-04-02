@@ -1,8 +1,7 @@
 name: Build Docker image and deploy to stage env
 on:
   push:
-    # TODO: Remove feature/** (used only for testing)
-    branches: [develop, feature/**]
+    branches: [develop]
 
 permissions:
   contents: read
