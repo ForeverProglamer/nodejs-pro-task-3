@@ -86,12 +86,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull image from the registry
-        run: docker pull "$IMAGE"
+        run: docker pull ${{ env.IMAGE }}
 
       - name: Deploy
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           API_PORT: ${{ vars.API_PORT }}
+          # Just to be explicit about dependency on IMAGE
+          IMAGE: ${{ env.IMAGE }}
         run: |
           cp .env.example .env
           echo "DB_PASSWORD=$DB_PASSWORD" >> .env
