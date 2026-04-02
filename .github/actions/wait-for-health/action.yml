@@ -1,0 +1,42 @@
+name: Wait for Health
+description: Wait until API becomes healthy
+
+inputs:
+  url:
+    required: true
+  attempts:
+    required: false
+    default: "10"
+  sleep:
+    required: false
+    default: "2"
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        ATTEMPTS=${{ inputs.attempts }}
+        SLEEP=${{ inputs.sleep }}
+        URL="${{ inputs.url }}"
+
+        for i in $(seq 1 $ATTEMPTS); do
+          echo "Attempt $i..."
+
+          if [ "$i" -eq "$ATTEMPTS" ]; then
+            echo "Last attempt — verbose output"
+            curl -v --fail --connect-timeout 2 --max-time 5 "$URL" && exit 0
+          else
+            if curl --fail --show-error --silent --connect-timeout 2 --max-time 5 "$URL"; then
+              echo -e "\nHealthy"
+              exit 0
+            else
+              echo "Not ready"
+            fi
+          fi
+
+          sleep $SLEEP
+        done
+
+        echo "Failed after $ATTEMPTS attempts"
+        exit 1

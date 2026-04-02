@@ -23,7 +23,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const correlationId =
-      (request as any).correlationId ||
+      request.correlationId ||
       (typeof request.headers["x-correlation-id"] === "string"
         ? request.headers["x-correlation-id"]
         : "unknown");
@@ -50,7 +50,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      const res = exception.getResponse() as any;
+      const res = exception.getResponse() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
       if (res && typeof res === "object" && res.code && res.message) {
         body = {

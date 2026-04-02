@@ -1,11 +1,13 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { UsersModule } from "./users/users.module";
 import { OrdersModule } from "./orders/orders.module";
 import { ProductsModule } from "./products/products.module";
 import { RabbitMqModule } from "./rabbit-mq/rabbit-mq.module";
-import { DebugModule } from './debug/debug.module';
+import { DebugModule } from "./debug/debug.module";
+import { AppController } from "./app.controller";
+import { CorrelationIdMiddleware } from "./common/correlation-id.middleware";
 
 @Module({
   imports: [
@@ -32,5 +34,10 @@ import { DebugModule } from './debug/debug.module';
     RabbitMqModule,
     DebugModule,
   ],
+  controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationIdMiddleware).forRoutes("*");
+  }
+}

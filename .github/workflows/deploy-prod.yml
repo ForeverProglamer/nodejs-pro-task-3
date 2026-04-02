@@ -1,0 +1,47 @@
+name: Deploy to production env
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Docker image from release-manifest.json'
+        required: true
+        type: string
+
+concurrency:
+  group: production
+
+jobs:
+  deploy-prod:
+    runs-on: [self-hosted, production]
+    environment:
+      name: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Login to GitHub Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image from the registry
+        run: docker pull ${{ inputs.image }}
+
+      - name: Deploy
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          API_PORT: ${{ vars.API_PORT }}
+        run: |
+          cp .env.example .env
+          echo "DB_PASSWORD=$DB_PASSWORD" >> .env
+          echo "API_PORT=$API_PORT" >> .env
+          docker compose -f compose.prod.yml -p prod up -d
+
+      - name: Post-deploy test
+        uses: ./.github/actions/wait-for-health
+        with:
+          url: http://localhost:${{ vars.API_PORT }}/health
+          attempts: 8
+          sleep: 2

@@ -1,14 +1,12 @@
 services:
   api:
-    build:
-      context: .
-      target: prod
+    image: ${IMAGE}
     restart: unless-stopped
     env_file: .env
     environment:
       NODE_ENV: production
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "${API_PORT}:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -24,9 +22,9 @@ services:
     image: postgres:17.4-alpine3.21
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-nest_task3_db}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${DB_NAME}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -36,14 +34,16 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     networks: [private]
+    secrets:
+      - postgres_password
 
   rabbitmq:
     image: rabbitmq:4.2.4-management-alpine
     restart: unless-stopped
     hostname: message-broker
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-user}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-password}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -55,9 +55,7 @@ services:
     networks: [private]
 
   migrate:
-    build:
-      context: .
-      target: prod
+    image: ${IMAGE}
     command: npm run prod:db:migrate
     env_file: .env
     depends_on:
@@ -68,9 +66,7 @@ services:
 
   seed:
     profiles: [seed]
-    build:
-      context: .
-      target: prod
+    image: ${IMAGE}
     command: npm run prod:seed
     env_file: .env
     depends_on:
@@ -88,3 +84,7 @@ networks:
     driver: bridge
   public:
     driver: bridge
+
+secrets:
+  postgres_password:
+    environment: DB_PASSWORD

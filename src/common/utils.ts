@@ -13,3 +13,19 @@ export const parseBoolean = (value: string): boolean => {
 
 export const sleep = (seconds: number) =>
   new Promise((res) => setTimeout(res, seconds * 1000));
+
+export const formatError = (err: unknown): string => {
+  if (err instanceof Error) {
+    return err.stack || `${err.name}: ${err.message}`;
+  }
+
+  if (typeof err === "object" && err !== null) {
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  }
+
+  return String(err);
+};
