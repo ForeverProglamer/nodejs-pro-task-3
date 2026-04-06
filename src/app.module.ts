@@ -8,6 +8,7 @@ import { RabbitMqModule } from "./rabbit-mq/rabbit-mq.module";
 import { DebugModule } from "./debug/debug.module";
 import { AppController } from "./app.controller";
 import { CorrelationIdMiddleware } from "./common/correlation-id.middleware";
+import { AuthModule } from "./auth/auth.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CorrelationIdMiddleware } from "./common/correlation-id.middleware";
     ProductsModule,
     RabbitMqModule,
     DebugModule,
+    AuthModule,
   ],
   controllers: [AppController],
 })

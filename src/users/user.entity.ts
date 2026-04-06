@@ -25,6 +25,9 @@ export default class User {
   @Column("varchar", { length: 100, nullable: false })
   email: string;
 
+  @Column("varchar", { length: 100, nullable: false })
+  password: string;
+
   @Column({
     type: "enum",
     enum: UserRole,

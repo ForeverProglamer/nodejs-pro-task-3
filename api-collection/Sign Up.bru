@@ -1,0 +1,23 @@
+meta {
+  name: Sign Up
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://localhost:3000/auth/sign-up
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "username": "abc@mail.com",
+    "password": "abc-pass"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
