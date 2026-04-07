@@ -4,6 +4,7 @@ import User from "./user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import SignUpDto from "src/auth/sign-up.dto";
 import { DuplicateEntityCreationError } from "src/common/errors";
+import { UUID } from "crypto";
 
 @Injectable()
 export class UsersService {
@@ -20,6 +21,10 @@ export class UsersService {
         throw new DuplicateEntityCreationError(User.name, { ...signUpDto });
       throw err;
     }
+  }
+
+  findById(id: UUID) {
+    return this.repo.findOneBy({ id });
   }
 
   findByEmail(email: string) {
