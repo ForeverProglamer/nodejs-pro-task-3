@@ -37,8 +37,14 @@ export class AuthController {
   @Public()
   @Post("sign-up")
   @HttpCode(HttpStatus.CREATED)
-  signUp(@Body() signUpDto: SignUpDto) {
-    return this.authService.signUp(signUpDto);
+  async signUp(@Body() signUpDto: SignUpDto) {
+    const user = await this.authService.signUp(signUpDto);
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
   }
 
   @Public()
