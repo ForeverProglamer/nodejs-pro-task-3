@@ -7,11 +7,11 @@ import User from "src/users/user.entity";
 import { verifyPassword, hashPassword } from "./utils";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import { addSeconds, getUnixTime } from "date-fns";
 import {
   ACCESS_TOKEN_MAX_AGE_S,
   REFRESH_TOKEN_MAX_AGE_S,
 } from "./jwt-constants";
+import JwtUser from "./jwt-user";
 
 @Injectable()
 export class AuthService {
@@ -26,9 +26,23 @@ export class AuthService {
     if (!user) throw new EntityNotFoundError(User.name, { ...logInDto });
     if (!(await verifyPassword(user.password, logInDto.password)))
       throw new IncorrectPasswordError({ ...logInDto });
+    return this.prepareTokenResponse(user);
+  }
 
+  async signUp(signUpDto: SignUpDto) {
+    const hashedPassword = await hashPassword(signUpDto.password);
+    return await this.usersService.create(signUpDto, hashedPassword);
+  }
+
+  async refreshAccessToken(user: JwtUser, refreshToken: string) {
+    const currentUser = await this.usersService.findById(user.sub);
+    if (!currentUser)
+      throw new EntityNotFoundError(User.name, { ...user, refreshToken });
+    return this.prepareTokenResponse(currentUser);
+  }
+
+  private prepareTokenResponse(user: User) {
     const payload = { username: user.email, sub: user.id };
-
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {
@@ -37,20 +51,6 @@ export class AuthService {
       }),
       tokenType: "Bearer",
       expiresIn: ACCESS_TOKEN_MAX_AGE_S,
-    };
-  }
-
-  async signUp(signUpDto: SignUpDto) {
-    const hashedPassword = await hashPassword(signUpDto.password);
-    return await this.usersService.create(signUpDto, hashedPassword);
-  }
-
-  refreshAccessToken(refreshToken: string) {
-    return {
-      accessToken: "abc",
-      refreshToken: "def",
-      tokenType: "Bearer",
-      expiresIn: 3600,
     };
   }
 }

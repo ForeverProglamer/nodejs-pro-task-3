@@ -1,0 +1,23 @@
+meta {
+  name: Refresh Access Token
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  let data = res.body;
+  console.log("Refreshing accessToken");
+  console.log(data.accessToken);
+  bru.setEnvVar("accessToken", data.accessToken);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

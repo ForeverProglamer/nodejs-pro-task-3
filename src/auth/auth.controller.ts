@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Post,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import LogInDto from "./log-in.dto";
@@ -13,6 +14,9 @@ import { Response } from "express";
 import { Cookies } from "src/cookies/cookies.decorator";
 import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_MAX_AGE_S } from "./jwt-constants";
 import { Public } from "./public.decorator";
+import { User } from "./user.decorator";
+import JwtUser from "./jwt-user";
+import { JwtCookieAuthGuard } from "./jwt-auth.guard";
 
 @Controller("auth")
 export class AuthController {
@@ -48,8 +52,12 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(JwtCookieAuthGuard)
   @Post("refresh")
-  refreshAccessToken(@Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string) {
-    return this.authService.refreshAccessToken(refreshToken);
+  refreshAccessToken(
+    @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
+    @User() user: JwtUser,
+  ) {
+    return this.authService.refreshAccessToken(user, refreshToken);
   }
 }
