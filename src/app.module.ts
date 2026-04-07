@@ -9,6 +9,8 @@ import { DebugModule } from "./debug/debug.module";
 import { AppController } from "./app.controller";
 import { CorrelationIdMiddleware } from "./common/correlation-id.middleware";
 import { AuthModule } from "./auth/auth.module";
+import { APP_GUARD } from "@nestjs/core";
+import { JwtAuthGuard } from "./auth/jwt-auth.guard";
 
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { AuthModule } from "./auth/auth.module";
     AuthModule,
   ],
   controllers: [AppController],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

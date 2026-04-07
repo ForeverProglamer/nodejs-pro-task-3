@@ -5,21 +5,38 @@ import { UsersService } from "src/users/users.service";
 import { EntityNotFoundError, IncorrectPasswordError } from "src/common/errors";
 import User from "src/users/user.entity";
 import { verifyPassword, hashPassword } from "./utils";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
+import { addSeconds, getUnixTime } from "date-fns";
+import {
+  ACCESS_TOKEN_MAX_AGE_S,
+  REFRESH_TOKEN_MAX_AGE_S,
+} from "./jwt-constants";
 
 @Injectable()
 export class AuthService {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
 
   async login(logInDto: LogInDto) {
     const user = await this.usersService.findByEmail(logInDto.username);
     if (!user) throw new EntityNotFoundError(User.name, { ...logInDto });
     if (!(await verifyPassword(user.password, logInDto.password)))
       throw new IncorrectPasswordError({ ...logInDto });
+
+    const payload = { username: user.email, sub: user.id };
+
     return {
-      accessToken: "abc",
-      refreshToken: "def",
+      accessToken: this.jwtService.sign(payload),
+      refreshToken: this.jwtService.sign(payload, {
+        secret: this.configService.get("JWT_REFRESH_SECRET"),
+        expiresIn: REFRESH_TOKEN_MAX_AGE_S,
+      }),
       tokenType: "Bearer",
-      expiresIn: 3600,
+      expiresIn: ACCESS_TOKEN_MAX_AGE_S,
     };
   }
 

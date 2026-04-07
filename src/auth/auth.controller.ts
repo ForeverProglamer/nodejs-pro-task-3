@@ -11,14 +11,14 @@ import LogInDto from "./log-in.dto";
 import SignUpDto from "./sign-up.dto";
 import { Response } from "express";
 import { Cookies } from "src/cookies/cookies.decorator";
-
-const REFRESH_TOKEN_MAX_AGE_S = 3600 * 24 * 7;
-const REFRESH_TOKEN_COOKIE = "refreshToken";
+import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_MAX_AGE_S } from "./jwt-constants";
+import { Public } from "./public.decorator";
 
 @Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Public()
   @Post("login")
   async login(
     @Body() logInDto: LogInDto,
@@ -34,12 +34,14 @@ export class AuthController {
     return result;
   }
 
+  @Public()
   @Post("sign-up")
   @HttpCode(HttpStatus.CREATED)
   signUp(@Body() signUpDto: SignUpDto) {
     return this.authService.signUp(signUpDto);
   }
 
+  @Public()
   @Post("refresh")
   refreshAccessToken(@Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string) {
     return this.authService.refreshAccessToken(refreshToken);
