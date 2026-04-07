@@ -1,11 +1,11 @@
 meta {
   name: Create Order
   type: http
-  seq: 1
+  seq: 2
 }
 
 post {
-  url: http://localhost:3000/orders/
+  url: {{baseUrl}}/orders/
   body: json
   auth: inherit
 }
