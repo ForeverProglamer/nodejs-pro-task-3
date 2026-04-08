@@ -10,9 +10,12 @@ import {
 } from "src/common/errors";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
+import { randomUUID } from "crypto";
 
+const johnDoeId = randomUUID();
 const johnDoeEmail = "johh.doe@mail.com";
 const johnDoe: Partial<User> = {
+  id: johnDoeId,
   email: johnDoeEmail,
   password: "$2b$12$Ql4xM709i0nz3tOLezOwguHF3uU8HCcA7.CUcPwG2MerwCXyfmdQG",
 };
@@ -36,6 +39,10 @@ class MockUsersService {
 
   async findByEmail(email: string) {
     return this.repo.find((item) => item.email === email) ?? null;
+  }
+
+  async findById(id: string) {
+    return this.repo.find((item) => item.id === id) ?? null;
   }
 }
 
@@ -61,6 +68,8 @@ describe("AuthService", () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+
+    jwtService.sign.mockClear();
   });
 
   describe(".login", () => {
@@ -102,6 +111,32 @@ describe("AuthService", () => {
       await expect(service.signUp(dto)).rejects.toThrow(
         DuplicateEntityCreationError,
       );
+    });
+  });
+
+  describe(".refreshAccessToken", () => {
+    it("returns token response when user exists", async () => {
+      const jwtPayload = { sub: johnDoeId, email: johnDoeEmail };
+      const refreshToken = "token";
+      const result = await service.refreshAccessToken(jwtPayload, refreshToken);
+
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.tokenType).toBe("Bearer");
+      expect(result.expiresIn).toBeDefined();
+
+      // Signs access and refresh tokens
+      expect(jwtService.sign.mock.calls.length).toBe(2);
+      expect(result.accessToken).toBe("token");
+      expect(result.refreshToken).toBe("token");
+    });
+
+    it("throws an error when user not found", async () => {
+      const jwtPayload = { sub: randomUUID(), email: "non.existing@mail.com" };
+      const refreshToken = "token";
+      await expect(
+        service.refreshAccessToken(jwtPayload, refreshToken),
+      ).rejects.toThrow(EntityNotFoundError);
     });
   });
 });
