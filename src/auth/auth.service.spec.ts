@@ -50,7 +50,7 @@ describe("AuthService", () => {
   let service: AuthService;
 
   const jwtService = {
-    sign: jest.fn((payload) => "token"),
+    sign: jest.fn(() => "token"),
   };
 
   const configService = {
