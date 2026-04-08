@@ -8,6 +8,8 @@ import {
   EntityNotFoundError,
   IncorrectPasswordError,
 } from "src/common/errors";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
 
 const johnDoeEmail = "johh.doe@mail.com";
 const johnDoe: Partial<User> = {
@@ -40,11 +42,21 @@ class MockUsersService {
 describe("AuthService", () => {
   let service: AuthService;
 
+  const jwtService = {
+    sign: jest.fn((payload) => "token"),
+  };
+
+  const configService = {
+    get: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UsersService, useClass: MockUsersService },
+        { provide: JwtService, useValue: jwtService },
+        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
@@ -59,6 +71,11 @@ describe("AuthService", () => {
       expect(result.refreshToken).toBeDefined();
       expect(result.tokenType).toBe("Bearer");
       expect(result.expiresIn).toBeDefined();
+
+      // Signs access and refresh tokens
+      expect(jwtService.sign.mock.calls.length).toBe(2);
+      expect(result.accessToken).toBe("token");
+      expect(result.refreshToken).toBe("token");
     });
 
     it("throws an error when user not found", async () => {
