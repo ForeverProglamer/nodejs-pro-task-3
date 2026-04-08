@@ -4,6 +4,14 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import JwtUser from "./jwt-user";
 
+export interface JwtPayload {
+  sub: string;
+  iat: number;
+  exp: number;
+  // Custom fields
+  username: string;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
@@ -16,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     this.configService = configService;
   }
 
-  validate(payload: any): JwtUser {
-    return { sub: payload.sub, email: payload.username };
+  validate(payload: JwtPayload): JwtUser {
+    return { sub: payload.sub, email: payload.username } as JwtUser;
   }
 }
