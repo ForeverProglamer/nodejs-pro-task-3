@@ -47,7 +47,7 @@ export class JwtCookieAuthGuard implements CanActivate {
     const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE];
     try {
       const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.configService.get("JWT_REFRESH_SECRET"),
+        secret: this.configService.get("JWT_RT_SECRET"),
         ignoreExpiration: false,
       });
       req["user"] = payload;

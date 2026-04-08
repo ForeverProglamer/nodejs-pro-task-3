@@ -46,7 +46,7 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {
-        secret: this.configService.get("JWT_REFRESH_SECRET"),
+        secret: this.configService.get("JWT_RT_SECRET"),
         expiresIn: REFRESH_TOKEN_MAX_AGE_S,
       }),
       tokenType: "Bearer",
