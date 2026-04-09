@@ -22,7 +22,7 @@ const LOGIN_URL = `${BASE_URL}/auth/login`;
 const ORDERS_URL = `${BASE_URL}/orders`;
 
 const loginDto: LogInDto = {
-  username: USER_EMAIL,
+  email: USER_EMAIL,
   password: USER_PASS,
 };
 

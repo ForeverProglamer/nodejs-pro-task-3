@@ -1,4 +1,4 @@
 export default class SignUpDto {
-  username: string;
+  email: string;
   password: string;
 }

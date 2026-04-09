@@ -13,7 +13,7 @@ export class UsersService {
   async create(signUpDto: SignUpDto, hashedPassword: string) {
     try {
       return await this.repo.save({
-        email: signUpDto.username,
+        email: signUpDto.email,
         password: hashedPassword,
       });
     } catch (err) {

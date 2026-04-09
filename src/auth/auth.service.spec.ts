@@ -34,10 +34,10 @@ class MockUsersService {
   }
 
   async create(dto: SignUpDto, password: string) {
-    if (await this.findByEmail(dto.username))
+    if (await this.findByEmail(dto.email))
       throw new DuplicateEntityCreationError(User.name, { ...dto });
 
-    const user = { email: dto.username, password };
+    const user = { email: dto.email, password };
     this.repo.push(user);
     return user;
   }
@@ -89,7 +89,7 @@ describe("AuthService", () => {
 
   describe(".login", () => {
     it("returns access token response for successful log in", async () => {
-      const dto = { username: johnDoeEmail, password: johnDoeRawPass };
+      const dto = { email: johnDoeEmail, password: johnDoeRawPass };
       const result = await service.login(dto);
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
@@ -110,26 +110,26 @@ describe("AuthService", () => {
     });
 
     it("throws an error when user not found", async () => {
-      const dto = { username: "non.existing@mail.com", password: "pass" };
+      const dto = { email: "non.existing@mail.com", password: "pass" };
       await expect(service.login(dto)).rejects.toThrow(EntityNotFoundError);
     });
 
     it("throws an error when password is incorrect", async () => {
-      const dto = { username: johnDoeEmail, password: "randompass" };
+      const dto = { email: johnDoeEmail, password: "randompass" };
       await expect(service.login(dto)).rejects.toThrow(IncorrectPasswordError);
     });
   });
 
   describe(".signUp", () => {
     it("returns newly created user with hashed password", async () => {
-      const dto = { username: "new@mail.com", password: "new-secret" };
+      const dto = { email: "new@mail.com", password: "new-secret" };
       const result = await service.signUp(dto);
-      expect(result.email).toBe(dto.username);
+      expect(result.email).toBe(dto.email);
       expect(result.password).not.toBe(dto.password);
     });
 
     it("throws an error when user already exists", async () => {
-      const dto = { username: johnDoeEmail, password: "new-secret" };
+      const dto = { email: johnDoeEmail, password: "new-secret" };
       await expect(service.signUp(dto)).rejects.toThrow(
         DuplicateEntityCreationError,
       );

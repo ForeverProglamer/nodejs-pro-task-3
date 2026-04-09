@@ -11,7 +11,7 @@ export interface JwtPayload {
   exp: number;
 
   // Custom fields
-  username: string;
+  email: string;
   roles: UserRoleValue[];
 }
 
@@ -30,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   validate(payload: JwtPayload): JwtPayloadDto {
     return {
       sub: payload.sub,
-      email: payload.username,
+      email: payload.email,
       roles: payload.roles ?? [],
     } as JwtPayloadDto;
   }

@@ -19,7 +19,7 @@ export class AuthService {
   ) {}
 
   async login(logInDto: LogInDto) {
-    const user = await this.usersService.findByEmail(logInDto.username);
+    const user = await this.usersService.findByEmail(logInDto.email);
     if (!user) throw new EntityNotFoundError(User.name, { ...logInDto });
     if (!(await this.passwordService.verify(user.password, logInDto.password)))
       throw new IncorrectPasswordError({ ...logInDto });
@@ -39,7 +39,11 @@ export class AuthService {
   }
 
   private prepareTokenResponse(user: User) {
-    const payload = { username: user.email, sub: user.id, roles: [user.role] };
+    const payload: JwtPayloadDto = {
+      email: user.email,
+      sub: user.id,
+      roles: [user.role],
+    };
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {
