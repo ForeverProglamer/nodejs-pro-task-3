@@ -2,13 +2,13 @@ import * as bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 12;
 
-export const hashPassword = (value: string): Promise<string> => {
+export const hash = (value: string): Promise<string> => {
   return bcrypt.hash(value, SALT_ROUNDS);
 };
 
-export const verifyPassword = (
-  hashed: string,
+export const verifyHash = (
+  hash: string,
   candidate: string,
 ): Promise<boolean> => {
-  return bcrypt.compare(candidate, hashed);
+  return bcrypt.compare(candidate, hash);
 };

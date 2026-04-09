@@ -5,7 +5,7 @@ import Product from "../products/product.entity";
 import Order, { OrderStatus } from "../orders/order.entity";
 import OrderItem from "../orders/order-item.entity";
 import { randomUUID } from "crypto";
-import { hashPassword } from "src/auth/utils";
+import { hash } from "src/auth/utils";
 
 import {
   ADMIN_EMAIL,
@@ -42,7 +42,7 @@ async function seed() {
     if (!admin) {
       admin = userRepo.create({
         email: ADMIN_EMAIL,
-        password: await hashPassword(ADMIN_PASS),
+        password: await hash(ADMIN_PASS),
         role: UserRole.ADMIN,
       });
 
@@ -57,7 +57,7 @@ async function seed() {
     if (!user) {
       user = userRepo.create({
         email: USER_EMAIL,
-        password: await hashPassword(USER_PASS),
+        password: await hash(USER_PASS),
         role: UserRole.USER,
       });
 

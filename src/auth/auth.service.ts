@@ -4,7 +4,6 @@ import SignUpDto from "./sign-up.dto";
 import { UsersService } from "src/users/users.service";
 import { EntityNotFoundError, IncorrectPasswordError } from "src/common/errors";
 import User from "src/users/user.entity";
-import { verifyPassword, hashPassword } from "./utils";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import {
@@ -12,25 +11,27 @@ import {
   REFRESH_TOKEN_MAX_AGE_S,
 } from "./jwt-constants";
 import JwtUser from "./jwt-user";
+import { PasswordService } from "./password.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private passwordService: PasswordService,
     private configService: ConfigService,
   ) {}
 
   async login(logInDto: LogInDto) {
     const user = await this.usersService.findByEmail(logInDto.username);
     if (!user) throw new EntityNotFoundError(User.name, { ...logInDto });
-    if (!(await verifyPassword(user.password, logInDto.password)))
+    if (!(await this.passwordService.verify(user.password, logInDto.password)))
       throw new IncorrectPasswordError({ ...logInDto });
     return this.prepareTokenResponse(user);
   }
 
   async signUp(signUpDto: SignUpDto) {
-    const hashedPassword = await hashPassword(signUpDto.password);
+    const hashedPassword = await this.passwordService.hash(signUpDto.password);
     return await this.usersService.create(signUpDto, hashedPassword);
   }
 
