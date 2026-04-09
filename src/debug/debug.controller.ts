@@ -1,5 +1,5 @@
 import { Body, Controller, Logger, Post } from "@nestjs/common";
-import { Public } from "src/auth/decorators";
+import { Roles } from "src/auth/decorators";
 import { ProcessOrderMessageDto } from "src/orders/process-order-message.dto";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 
@@ -9,10 +9,11 @@ export class DebugController {
 
   constructor(private readonly rabbitmq: RabbitMqService) {}
 
-  @Public()
+  @Roles("admin")
   @Post("orders/process")
   processOrder(@Body() message: ProcessOrderMessageDto) {
     this.logger.log("Received a message", message);
     this.rabbitmq.send("orders.process", message);
+    return { ok: true };
   }
 }

@@ -39,7 +39,7 @@ export class AuthService {
   }
 
   private prepareTokenResponse(user: User) {
-    const payload = { username: user.email, sub: user.id };
+    const payload = { username: user.email, sub: user.id, roles: [user.role] };
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {
