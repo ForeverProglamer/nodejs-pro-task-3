@@ -9,6 +9,7 @@ export interface JwtPayload {
   sub: string;
   iat: number;
   exp: number;
+
   // Custom fields
   username: string;
   roles: UserRoleValue[];
