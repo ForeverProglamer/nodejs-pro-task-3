@@ -1,5 +1,5 @@
 import { Body, Controller, Logger, Post } from "@nestjs/common";
-import { Public } from "src/auth/public.decorator";
+import { Public } from "src/auth/decorators";
 import { ProcessOrderMessageDto } from "src/orders/process-order-message.dto";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 

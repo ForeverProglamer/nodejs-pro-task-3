@@ -8,7 +8,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import { AuthGuard } from "@nestjs/passport";
 import { Observable } from "rxjs";
-import { IS_PUBLIC_KEY } from "./public.decorator";
+import { IS_PUBLIC_KEY } from "./decorators";
 
 import { Request } from "express";
 import { REFRESH_TOKEN_COOKIE } from "./jwt-constants";

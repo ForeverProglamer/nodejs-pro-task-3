@@ -13,8 +13,7 @@ import SignUpDto from "./dtos/sign-up.dto";
 import { Response } from "express";
 import { Cookies } from "src/cookies/cookies.decorator";
 import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_MAX_AGE_S } from "./jwt-constants";
-import { Public } from "./public.decorator";
-import { User } from "./user.decorator";
+import { JwtPayload, Public } from "./decorators";
 import JwtUserDto from "./dtos/jwt-user.dto";
 import { JwtCookieAuthGuard } from "./jwt-auth.guard";
 
@@ -56,7 +55,7 @@ export class AuthController {
   @Post("refresh")
   refreshAccessToken(
     @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
-    @User() user: JwtUserDto,
+    @JwtPayload() user: JwtUserDto,
   ) {
     return this.authService.refreshAccessToken(user, refreshToken);
   }

@@ -21,7 +21,7 @@ import { OrdersService } from "./orders.service";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
 import { OrderStatus } from "./order.entity";
-import { User } from "src/auth/user.decorator";
+import { JwtPayload } from "src/auth/decorators";
 
 @Controller("orders")
 export class OrdersController {
@@ -30,7 +30,7 @@ export class OrdersController {
   @HttpCode(HttpStatus.CREATED)
   @Post()
   async create(
-    @User("sub") userId: UUID,
+    @JwtPayload("sub") userId: UUID,
     @Body() dto: CreateOrderDto,
     @Headers("idempotency-key") idempotencyKey?: UUID,
   ) {
@@ -48,7 +48,7 @@ export class OrdersController {
 
   @Get(":id")
   async findById(
-    @User("sub") userId: UUID,
+    @JwtPayload("sub") userId: UUID,
     @Param("id", ParseUUIDPipe) id: UUID,
   ) {
     const result = await this.ordersService.findById(id, userId);
@@ -58,7 +58,7 @@ export class OrdersController {
 
   @Get()
   async list(
-    @User("sub") userId: UUID,
+    @JwtPayload("sub") userId: UUID,
     @Query(
       "status",
       new DefaultValuePipe(OrderStatus.CREATED),
