@@ -8,6 +8,10 @@ import { RabbitMqModule } from "./rabbit-mq/rabbit-mq.module";
 import { DebugModule } from "./debug/debug.module";
 import { AppController } from "./app.controller";
 import { CorrelationIdMiddleware } from "./common/correlation-id.middleware";
+import { AuthModule } from "./auth/auth.module";
+import { APP_GUARD } from "@nestjs/core";
+import { JwtAuthGuard } from "./auth/jwt-auth.guard";
+import { RolesGuard } from "./auth/roles.guard";
 
 @Module({
   imports: [
@@ -33,8 +37,13 @@ import { CorrelationIdMiddleware } from "./common/correlation-id.middleware";
     ProductsModule,
     RabbitMqModule,
     DebugModule,
+    AuthModule,
   ],
   controllers: [AppController],
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

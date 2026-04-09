@@ -6,6 +6,5 @@ export type OrderItemDtoType = {
 };
 
 export class CreateOrderDto {
-  userId: UUID; // TODO: Infer from JWT
   items: OrderItemDtoType[];
 }
