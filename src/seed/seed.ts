@@ -5,27 +5,15 @@ import Product from "../products/product.entity";
 import Order, { OrderStatus } from "../orders/order.entity";
 import OrderItem from "../orders/order-item.entity";
 import { randomUUID } from "crypto";
+import { hash } from "src/auth/utils";
 
-const productData = [
-  {
-    title: "Laptop",
-    description: "High performance laptop",
-    stock: 10,
-    price: "1200",
-  },
-  {
-    title: "Mouse",
-    description: "Wireless mouse",
-    stock: 50,
-    price: "25",
-  },
-  {
-    title: "Keyboard",
-    description: "Mechanical keyboard",
-    stock: 30,
-    price: "100",
-  },
-];
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASS,
+  USER_EMAIL,
+  USER_PASS,
+  productData,
+} from "./constants";
 
 async function seed() {
   await AppDataSource.initialize();
@@ -48,12 +36,13 @@ async function seed() {
      * USERS
      */
     let admin = await userRepo.findOne({
-      where: { email: "admin@example.com" },
+      where: { email: ADMIN_EMAIL },
     });
 
     if (!admin) {
       admin = userRepo.create({
-        email: "admin@example.com",
+        email: ADMIN_EMAIL,
+        password: await hash(ADMIN_PASS),
         role: UserRole.ADMIN,
       });
 
@@ -62,12 +51,13 @@ async function seed() {
     }
 
     let user = await userRepo.findOne({
-      where: { email: "user@example.com" },
+      where: { email: USER_EMAIL },
     });
 
     if (!user) {
       user = userRepo.create({
-        email: "user@example.com",
+        email: USER_EMAIL,
+        password: await hash(USER_PASS),
         role: UserRole.USER,
       });
 

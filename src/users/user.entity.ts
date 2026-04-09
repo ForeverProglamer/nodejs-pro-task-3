@@ -16,6 +16,8 @@ export enum UserRole {
   ADMIN = "admin",
 }
 
+export type UserRoleValue = `${UserRole}`;
+
 @Entity("users")
 @Unique("UQ_users_email", ["email"])
 export default class User {
@@ -24,6 +26,9 @@ export default class User {
 
   @Column("varchar", { length: 100, nullable: false })
   email: string;
+
+  @Column("varchar", { length: 100, nullable: false })
+  password: string;
 
   @Column({
     type: "enum",

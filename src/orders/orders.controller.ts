@@ -21,6 +21,7 @@ import { OrdersService } from "./orders.service";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
 import { OrderStatus } from "./order.entity";
+import { JwtPayload } from "src/auth/decorators";
 
 @Controller("orders")
 export class OrdersController {
@@ -29,27 +30,35 @@ export class OrdersController {
   @HttpCode(HttpStatus.CREATED)
   @Post()
   async create(
+    @JwtPayload("sub") userId: UUID,
     @Body() dto: CreateOrderDto,
     @Headers("idempotency-key") idempotencyKey?: UUID,
   ) {
     if (!idempotencyKey)
       throw new BadRequestException("'Idempotency-Key' header is missing");
-    const order = await this.ordersService.createOrder(dto, idempotencyKey);
+    const order = await this.ordersService.createOrder(
+      userId,
+      dto,
+      idempotencyKey,
+    );
     if (!order)
       throw new InternalServerErrorException("Failed to create order");
     return order;
   }
 
   @Get(":id")
-  async findById(@Param("id", ParseUUIDPipe) id: UUID) {
-    const result = await this.ordersService.findById(id);
+  async findById(
+    @JwtPayload("sub") userId: UUID,
+    @Param("id", ParseUUIDPipe) id: UUID,
+  ) {
+    const result = await this.ordersService.findById(id, userId);
     if (!result) throw new NotFoundException("Order not found");
     return this.ordersService.toDto([result])[0];
   }
 
   @Get()
   async list(
-    @Query("userId", ParseUUIDPipe) userId: UUID, // TODO: Infer from JWT
+    @JwtPayload("sub") userId: UUID,
     @Query(
       "status",
       new DefaultValuePipe(OrderStatus.CREATED),
@@ -61,22 +70,13 @@ export class OrdersController {
     @Query("from", new ParseDatePipe({ optional: true })) from?: Date,
     @Query("to", new ParseDatePipe({ optional: true })) to?: Date,
   ) {
-    const inspect = <T>(val: T) => ({ value: val, type: typeof val });
-    console.log({
-      userId: inspect(userId),
-      status: inspect(status),
-      from: inspect(from),
-      to: inspect(to),
-      page: inspect(page),
-      limit: inspect(limit),
-    });
     const orders = await this.ordersService.list(
-      userId,
       status,
       page,
       limit,
       from,
       to,
+      userId,
     );
     return this.ordersService.toDto(orders);
   }

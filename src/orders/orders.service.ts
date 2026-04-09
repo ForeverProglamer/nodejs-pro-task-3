@@ -25,7 +25,7 @@ export class OrdersService {
     private readonly rabbitmq: RabbitMqService,
   ) {}
 
-  async createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
+  async createOrder(userId: UUID, dto: CreateOrderDto, idempotencyKey: UUID) {
     this.logger.log(`Initiating order creation`, { dto, idempotencyKey });
     const created = await this.dataSource.transaction(async (mngr) => {
       const ordersRepo = mngr.getRepository(Order);
@@ -33,7 +33,7 @@ export class OrdersService {
       const orderItemsRepo = mngr.getRepository(OrderItem);
 
       const existingOrder = await ordersRepo.findOne({
-        where: { userId: dto.userId, idempotencyKey },
+        where: { userId: userId, idempotencyKey },
         relations: { items: true },
       });
       if (existingOrder) return existingOrder;
@@ -49,10 +49,7 @@ export class OrdersService {
 
       this.logger.log({ products });
       const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
-      const order = await ordersRepo.save({
-        userId: dto.userId,
-        idempotencyKey,
-      });
+      const order = await ordersRepo.save({ userId, idempotencyKey });
       this.logger.log({ order });
 
       const partialItems: Partial<OrderItem>[] = [];
@@ -111,20 +108,31 @@ export class OrdersService {
     );
   }
 
-  findById(id: UUID) {
+  findById(id: UUID, userId?: UUID) {
+    // NOTE: userId is required for cases when user fetches
+    // his own order data and is not required when admin does
+    // so. And we rely on controllers to distinguish between the two.
     return this.ordersRepo.findOne({
-      where: { id },
+      where: { id, userId },
       relations: { items: true },
+      select: [
+        "id",
+        "status",
+        "idempotencyKey",
+        "createdAt",
+        "updatedAt",
+        "processedAt",
+      ],
     });
   }
 
   list(
-    userId: UUID,
     status: OrderStatus,
     page: number,
     limit: number,
     from?: Date,
     to?: Date,
+    userId?: UUID,
   ) {
     const qb = this.ordersRepo
       .createQueryBuilder("orders")
@@ -136,11 +144,14 @@ export class OrdersService {
         "items.qty",
         "items.purchasePrice",
       ])
-      .where("orders.userId = :userId", { userId })
-      .andWhere("orders.status = :status", { status })
+      .where("orders.status = :status", { status })
       .orderBy("orders.createdAt", "DESC")
       .take(limit)
       .skip((page - 1) * limit);
+
+    if (userId) {
+      qb.andWhere("orders.userId = :userId", { userId });
+    }
 
     if (from) {
       qb.andWhere("orders.createdAt >= :from", { from });
@@ -148,7 +159,6 @@ export class OrdersService {
     if (to) {
       qb.andWhere("orders.createdAt <= :to", { to });
     }
-    this.logger.log(qb.getSql());
     return qb.getMany();
   }
 

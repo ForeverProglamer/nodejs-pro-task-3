@@ -1,0 +1,30 @@
+meta {
+  name: Log In
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "abc@mail.com",
+    "password": "abc-pass"
+  }
+}
+
+script:post-response {
+  let data = res.body;
+  console.log("TESTING POST-RESPONSE");
+  console.log(data.accessToken);
+  bru.setEnvVar("accessToken", data.accessToken);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
