@@ -12,6 +12,7 @@ import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "crypto";
 import { PasswordService } from "./password.service";
+import JwtPayloadDto from "./dtos/jwt-payload.dto";
 
 const reverse = (s: string) => s.split("").reverse().join("");
 
@@ -137,7 +138,11 @@ describe("AuthService", () => {
 
   describe(".refreshAccessToken", () => {
     it("returns token response when user exists", async () => {
-      const jwtPayload = { sub: johnDoeId, email: johnDoeEmail };
+      const jwtPayload: JwtPayloadDto = {
+        sub: johnDoeId,
+        email: johnDoeEmail,
+        roles: [],
+      };
       const refreshToken = "refreshToken";
       const result = await service.refreshAccessToken(jwtPayload, refreshToken);
 
@@ -153,7 +158,11 @@ describe("AuthService", () => {
     });
 
     it("throws an error when user not found", async () => {
-      const jwtPayload = { sub: randomUUID(), email: "non.existing@mail.com" };
+      const jwtPayload: JwtPayloadDto = {
+        sub: randomUUID(),
+        email: "non.existing@mail.com",
+        roles: [],
+      };
       const refreshToken = "refreshToken";
       await expect(
         service.refreshAccessToken(jwtPayload, refreshToken),
