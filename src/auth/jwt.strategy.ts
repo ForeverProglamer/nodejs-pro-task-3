@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import JwtPayloadDto from "./dtos/jwt-payload.dto";
+import { UserRoleValue } from "src/users/user.entity";
 
 export interface JwtPayload {
   sub: string;
@@ -10,7 +11,7 @@ export interface JwtPayload {
   exp: number;
   // Custom fields
   username: string;
-  roles: string[];
+  roles: UserRoleValue[];
 }
 
 @Injectable()
