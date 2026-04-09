@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthService } from "./auth.service";
 import User from "src/users/user.entity";
-import SignUpDto from "./sign-up.dto";
+import SignUpDto from "./dtos/sign-up.dto";
 import { UsersService } from "src/users/users.service";
 import {
   DuplicateEntityCreationError,

@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { randomUUID, UUID } from "crypto";
 
-import LogInDto from "src/auth/log-in.dto";
+import LogInDto from "src/auth/dtos/log-in.dto";
 import { CreateOrderDto } from "src/orders/create-order.dto";
 import { USER_EMAIL, USER_PASS } from "src/seed/constants";
 

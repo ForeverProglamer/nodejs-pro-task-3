@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import LogInDto from "./log-in.dto";
-import SignUpDto from "./sign-up.dto";
+import LogInDto from "./dtos/log-in.dto";
+import SignUpDto from "./dtos/sign-up.dto";
 import { UsersService } from "src/users/users.service";
 import { EntityNotFoundError, IncorrectPasswordError } from "src/common/errors";
 import User from "src/users/user.entity";

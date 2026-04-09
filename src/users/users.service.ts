@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Repository } from "typeorm";
 import User from "./user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
-import SignUpDto from "src/auth/sign-up.dto";
+import SignUpDto from "src/auth/dtos/sign-up.dto";
 import { DuplicateEntityCreationError } from "src/common/errors";
 import { UUID } from "crypto";
 

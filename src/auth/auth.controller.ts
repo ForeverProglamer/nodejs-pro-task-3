@@ -8,8 +8,8 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import LogInDto from "./log-in.dto";
-import SignUpDto from "./sign-up.dto";
+import LogInDto from "./dtos/log-in.dto";
+import SignUpDto from "./dtos/sign-up.dto";
 import { Response } from "express";
 import { Cookies } from "src/cookies/cookies.decorator";
 import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_MAX_AGE_S } from "./jwt-constants";
