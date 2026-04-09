@@ -60,7 +60,7 @@ describe("AuthService", () => {
   };
 
   const configService = {
-    get: jest.fn(),
+    getOrThrow: jest.fn(),
   };
 
   const passwordService = {
