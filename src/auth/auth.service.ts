@@ -6,10 +6,6 @@ import { EntityNotFoundError, IncorrectPasswordError } from "src/common/errors";
 import User from "src/users/user.entity";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import {
-  ACCESS_TOKEN_MAX_AGE_S,
-  REFRESH_TOKEN_MAX_AGE_S,
-} from "./jwt-constants";
 import JwtPayloadDto from "./dtos/jwt-payload.dto";
 import { PasswordService } from "./password.service";
 
@@ -47,11 +43,11 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {
-        secret: this.configService.get("JWT_RT_SECRET"),
-        expiresIn: REFRESH_TOKEN_MAX_AGE_S,
+        secret: this.configService.getOrThrow("JWT_RT_SECRET"),
+        expiresIn: Number(this.configService.getOrThrow("JWT_RT_MAX_AGE_S")),
       }),
       tokenType: "Bearer",
-      expiresIn: ACCESS_TOKEN_MAX_AGE_S,
+      expiresIn: Number(this.configService.getOrThrow("JWT_AT_MAX_AGE_S")),
     };
   }
 }

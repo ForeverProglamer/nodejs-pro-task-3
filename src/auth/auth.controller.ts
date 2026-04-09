@@ -12,14 +12,17 @@ import LogInDto from "./dtos/log-in.dto";
 import SignUpDto from "./dtos/sign-up.dto";
 import { Response } from "express";
 import { Cookies } from "src/cookies/cookies.decorator";
-import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_MAX_AGE_S } from "./jwt-constants";
 import { JwtPayload, Public } from "./decorators";
 import JwtPayloadDto from "./dtos/jwt-payload.dto";
-import { JwtCookieAuthGuard } from "./jwt-auth.guard";
+import { JwtCookieAuthGuard, REFRESH_TOKEN_COOKIE } from "./jwt-auth.guard";
+import { ConfigService } from "@nestjs/config";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   @Public()
   @Post("login")
@@ -32,7 +35,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      maxAge: REFRESH_TOKEN_MAX_AGE_S * 1000,
+      maxAge: Number(this.configService.getOrThrow("JWT_RT_MAX_AGE_S")) * 1000,
     });
     return result;
   }

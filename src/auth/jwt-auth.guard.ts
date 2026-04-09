@@ -11,7 +11,6 @@ import { Observable } from "rxjs";
 import { IS_PUBLIC_KEY } from "./decorators";
 
 import { Request } from "express";
-import { REFRESH_TOKEN_COOKIE } from "./jwt-constants";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { formatError } from "src/common/utils";
@@ -32,6 +31,8 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
     return isPublic ? true : super.canActivate(context);
   }
 }
+
+export const REFRESH_TOKEN_COOKIE = "refreshToken";
 
 @Injectable()
 export class JwtCookieAuthGuard implements CanActivate {
