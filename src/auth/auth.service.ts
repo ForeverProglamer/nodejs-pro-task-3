@@ -10,7 +10,7 @@ import {
   ACCESS_TOKEN_MAX_AGE_S,
   REFRESH_TOKEN_MAX_AGE_S,
 } from "./jwt-constants";
-import JwtUser from "./jwt-user";
+import JwtUserDto from "./dtos/jwt-user.dto";
 import { PasswordService } from "./password.service";
 
 @Injectable()
@@ -35,7 +35,7 @@ export class AuthService {
     return await this.usersService.create(signUpDto, hashedPassword);
   }
 
-  async refreshAccessToken(user: JwtUser, refreshToken: string) {
+  async refreshAccessToken(user: JwtUserDto, refreshToken: string) {
     const currentUser = await this.usersService.findById(user.sub);
     if (!currentUser)
       throw new EntityNotFoundError(User.name, { ...user, refreshToken });

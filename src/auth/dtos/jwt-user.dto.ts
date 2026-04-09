@@ -1,6 +1,6 @@
 import { UUID } from "crypto";
 
-export default interface JwtUser {
+export default interface JwtUserDto {
   sub: UUID;
   email: string;
 }

@@ -15,7 +15,7 @@ import { Cookies } from "src/cookies/cookies.decorator";
 import { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_MAX_AGE_S } from "./jwt-constants";
 import { Public } from "./public.decorator";
 import { User } from "./user.decorator";
-import JwtUser from "./jwt-user";
+import JwtUserDto from "./dtos/jwt-user.dto";
 import { JwtCookieAuthGuard } from "./jwt-auth.guard";
 
 @Controller("auth")
@@ -56,7 +56,7 @@ export class AuthController {
   @Post("refresh")
   refreshAccessToken(
     @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
-    @User() user: JwtUser,
+    @User() user: JwtUserDto,
   ) {
     return this.authService.refreshAccessToken(user, refreshToken);
   }
