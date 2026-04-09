@@ -58,8 +58,8 @@ export class AuthController {
   @Post("refresh")
   refreshAccessToken(
     @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
-    @JwtPayload() user: JwtPayloadDto,
+    @JwtPayload() payload: JwtPayloadDto,
   ) {
-    return this.authService.refreshAccessToken(user, refreshToken);
+    return this.authService.refreshAccessToken(payload, refreshToken);
   }
 }

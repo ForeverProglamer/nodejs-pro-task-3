@@ -8,14 +8,14 @@ export class UsersController {
   constructor(private service: UsersService) {}
 
   @Get("me")
-  async me(@JwtPayload() user: JwtPayloadDto) {
-    const currentUser = await this.service.findById(user.sub);
-    if (!currentUser) throw new NotFoundException("User not found");
+  async me(@JwtPayload() payload: JwtPayloadDto) {
+    const user = await this.service.findById(payload.sub);
+    if (!user) throw new NotFoundException("User not found");
     return {
-      id: currentUser.id,
-      email: currentUser.email,
-      role: currentUser.role,
-      createdAt: currentUser.createdAt,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
     };
   }
 }

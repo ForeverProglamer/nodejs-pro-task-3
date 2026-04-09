@@ -31,11 +31,11 @@ export class AuthService {
     return await this.usersService.create(signUpDto, hashedPassword);
   }
 
-  async refreshAccessToken(user: JwtPayloadDto, refreshToken: string) {
-    const currentUser = await this.usersService.findById(user.sub);
-    if (!currentUser)
-      throw new EntityNotFoundError(User.name, { ...user, refreshToken });
-    return this.prepareTokenResponse(currentUser);
+  async refreshAccessToken(payload: JwtPayloadDto, refreshToken: string) {
+    const user = await this.usersService.findById(payload.sub);
+    if (!user)
+      throw new EntityNotFoundError(User.name, { ...payload, refreshToken });
+    return this.prepareTokenResponse(user);
   }
 
   private prepareTokenResponse(user: User) {
