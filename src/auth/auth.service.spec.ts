@@ -50,11 +50,13 @@ class MockUsersService {
   }
 }
 
+const jwtSignOutput = "token";
+
 describe("AuthService", () => {
   let service: AuthService;
 
   const jwtService = {
-    sign: jest.fn(() => "token"),
+    sign: jest.fn(() => jwtSignOutput),
   };
 
   const configService = {
@@ -102,8 +104,8 @@ describe("AuthService", () => {
 
       // Signs access and refresh tokens
       expect(jwtService.sign.mock.calls.length).toBe(2);
-      expect(result.accessToken).toBe("token");
-      expect(result.refreshToken).toBe("token");
+      expect(result.accessToken).toBe(jwtSignOutput);
+      expect(result.refreshToken).toBe(jwtSignOutput);
     });
 
     it("throws an error when user not found", async () => {
@@ -136,7 +138,7 @@ describe("AuthService", () => {
   describe(".refreshAccessToken", () => {
     it("returns token response when user exists", async () => {
       const jwtPayload = { sub: johnDoeId, email: johnDoeEmail };
-      const refreshToken = "token";
+      const refreshToken = "refreshToken";
       const result = await service.refreshAccessToken(jwtPayload, refreshToken);
 
       expect(result.accessToken).toBeDefined();
@@ -146,13 +148,13 @@ describe("AuthService", () => {
 
       // Signs access and refresh tokens
       expect(jwtService.sign.mock.calls.length).toBe(2);
-      expect(result.accessToken).toBe("token");
-      expect(result.refreshToken).toBe("token");
+      expect(result.accessToken).toBe(jwtSignOutput);
+      expect(result.refreshToken).toBe(jwtSignOutput);
     });
 
     it("throws an error when user not found", async () => {
       const jwtPayload = { sub: randomUUID(), email: "non.existing@mail.com" };
-      const refreshToken = "token";
+      const refreshToken = "refreshToken";
       await expect(
         service.refreshAccessToken(jwtPayload, refreshToken),
       ).rejects.toThrow(EntityNotFoundError);
