@@ -3,11 +3,13 @@ import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/http-exception.filter";
 
 import * as cookieParser from "cookie-parser";
+import { ValidationPipe } from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   app.use(cookieParser());
   await app.listen(process.env.PORT ?? 3000);
 
