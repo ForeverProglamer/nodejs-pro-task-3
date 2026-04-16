@@ -18,12 +18,12 @@ npm run compose:down # Shut down app and infra
 ```
 
 Accessing services:
-- API: http://localhost:3000
+- API: http://localhost:3000/api
 - Postgres: http://localhost:5432
 - RabbitMQ: http://localhost:5672
 - RabbitMQ Web UI: http://localhost:15672
 
-> NOTE: See `.env.example` / `.env` for service credentials.
+> NOTE: See `.env.example` / `.env` for service configuration.
 
 Available one-off jobs:
 - Migrate DB: `docker compose run --rm migrate`
@@ -55,7 +55,7 @@ This project uses a GitHub Actions CI/CD pipeline with separate stages for PR va
   - uses the GitHub `stage` Environment
   - pulls the exact image built in the previous job from GHCR
   - deploys it with `docker compose -f compose.prod.yml -p stage up -d`
-  - performs a post-deploy smoke check against `http://localhost:${API_PORT}/health`
+  - performs a post-deploy smoke check against `http://localhost:${API_PORT}/api/health`
 
 `deploy-prod.yml`
 - Trigger: manual `workflow_dispatch`

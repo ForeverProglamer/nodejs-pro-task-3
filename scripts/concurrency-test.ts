@@ -13,7 +13,7 @@ if (!PRODUCT_ID) {
   process.exit(1);
 }
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = "http://localhost:3000/api";
 const BASE_HEADERS = {
   "Content-Type": "application/json",
 };

@@ -7,10 +7,15 @@ import { ValidationPipe } from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   app.enableShutdownHooks();
+
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   app.use(cookieParser());
+
+  app.setGlobalPrefix("api");
+
   await app.listen(process.env.PORT ?? 3000);
 
   // Help dev restarts inside containers release the port promptly.
