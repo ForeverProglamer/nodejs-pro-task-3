@@ -4,6 +4,7 @@ import { HttpExceptionFilter } from "./common/http-exception.filter";
 
 import * as cookieParser from "cookie-parser";
 import { ValidationPipe } from "@nestjs/common";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,6 +16,18 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.setGlobalPrefix("api");
+
+  const config = new DocumentBuilder()
+    .setTitle("E-commerce API")
+    .setDescription(
+      "API for managing orders and products of the e-commerce platform.",
+    )
+    .setVersion("1.0")
+    .addBearerAuth()
+    .addCookieAuth("refreshToken")
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api/docs", app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3000);
 

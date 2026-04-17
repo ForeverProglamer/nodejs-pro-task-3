@@ -22,7 +22,9 @@ import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
 import { OrderStatus } from "./order.entity";
 import { JwtPayload } from "src/auth/decorators";
+import { ApiBearerAuth } from "@nestjs/swagger";
 
+@ApiBearerAuth()
 @Controller("orders")
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}

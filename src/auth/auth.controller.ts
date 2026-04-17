@@ -16,6 +16,7 @@ import { JwtPayload, Public } from "./decorators";
 import JwtPayloadDto from "./dtos/jwt-payload.dto";
 import { JwtCookieAuthGuard, REFRESH_TOKEN_COOKIE } from "./jwt-auth.guard";
 import { ConfigService } from "@nestjs/config";
+import { ApiCookieAuth } from "@nestjs/swagger";
 
 @Controller("auth")
 export class AuthController {
@@ -53,6 +54,7 @@ export class AuthController {
     };
   }
 
+  @ApiCookieAuth(REFRESH_TOKEN_COOKIE)
   @Public()
   @UseGuards(JwtCookieAuthGuard)
   @Post("refresh")

@@ -2,7 +2,9 @@ import { Controller, Get, NotFoundException } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { JwtPayload } from "src/auth/decorators";
 import JwtPayloadDto from "src/auth/dtos/jwt-payload.dto";
+import { ApiBearerAuth } from "@nestjs/swagger";
 
+@ApiBearerAuth()
 @Controller("users")
 export class UsersController {
   constructor(private service: UsersService) {}
