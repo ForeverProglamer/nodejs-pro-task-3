@@ -16,7 +16,14 @@ import { JwtPayload, Public } from "./decorators";
 import JwtPayloadDto from "./dtos/jwt-payload.dto";
 import { JwtCookieAuthGuard, REFRESH_TOKEN_COOKIE } from "./jwt-auth.guard";
 import { ConfigService } from "@nestjs/config";
-import { ApiCookieAuth } from "@nestjs/swagger";
+import {
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+} from "@nestjs/swagger";
+import TokenResponseDto from "./dtos/token-response.dto";
+import UserResponseDto from "./dtos/user-response.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -27,10 +34,13 @@ export class AuthController {
 
   @Public()
   @Post("login")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Log into system" })
+  @ApiOkResponse({ type: TokenResponseDto })
   async login(
     @Body() logInDto: LogInDto,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<TokenResponseDto> {
     const result = await this.authService.login(logInDto);
     response.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, {
       httpOnly: true,
@@ -44,7 +54,9 @@ export class AuthController {
   @Public()
   @Post("sign-up")
   @HttpCode(HttpStatus.CREATED)
-  async signUp(@Body() signUpDto: SignUpDto) {
+  @ApiOperation({ summary: "Create an account" })
+  @ApiCreatedResponse({ type: UserResponseDto })
+  async signUp(@Body() signUpDto: SignUpDto): Promise<UserResponseDto> {
     const user = await this.authService.signUp(signUpDto);
     return {
       id: user.id,
@@ -54,14 +66,16 @@ export class AuthController {
     };
   }
 
-  @ApiCookieAuth(REFRESH_TOKEN_COOKIE)
   @Public()
-  @UseGuards(JwtCookieAuthGuard)
   @Post("refresh")
+  @UseGuards(JwtCookieAuthGuard)
+  @ApiOperation({ summary: "Refresh access token" })
+  @ApiOkResponse({ type: TokenResponseDto })
+  @ApiCookieAuth(REFRESH_TOKEN_COOKIE)
   refreshAccessToken(
     @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
     @JwtPayload() payload: JwtPayloadDto,
-  ) {
+  ): Promise<TokenResponseDto> {
     return this.authService.refreshAccessToken(payload, refreshToken);
   }
 }

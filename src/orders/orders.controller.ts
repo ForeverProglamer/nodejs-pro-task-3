@@ -22,15 +22,31 @@ import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
 import { OrderStatus } from "./order.entity";
 import { JwtPayload } from "src/auth/decorators";
-import { ApiBearerAuth } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+} from "@nestjs/swagger";
+import OrderResponseDto from "./order-response.dto";
 
 @ApiBearerAuth()
 @Controller("orders")
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @HttpCode(HttpStatus.CREATED)
   @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: "Create order" })
+  @ApiCreatedResponse({ type: OrderResponseDto })
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    example: "f266fcc6-88d2-4dfb-b5c3-05df42cc03b0",
+  })
   async create(
     @JwtPayload("sub") userId: UUID,
     @Body() dto: CreateOrderDto,
@@ -49,6 +65,9 @@ export class OrdersController {
   }
 
   @Get(":id")
+  @ApiOperation({ summary: "Get order by ID" })
+  @ApiOkResponse({ type: OrderResponseDto })
+  @ApiParam({ name: "id", example: "0e8fd161-5c56-4dba-8c7a-6f422ea4d8ee" })
   async findById(
     @JwtPayload("sub") userId: UUID,
     @Param("id", ParseUUIDPipe) id: UUID,
@@ -59,6 +78,13 @@ export class OrdersController {
   }
 
   @Get()
+  @ApiOperation({ summary: "Find orders" })
+  @ApiOkResponse({ type: [OrderResponseDto] })
+  @ApiQuery({ name: "status", required: false, default: OrderStatus.CREATED })
+  @ApiQuery({ name: "page", required: false, default: 1 })
+  @ApiQuery({ name: "limit", required: false, default: 10 })
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
   async list(
     @JwtPayload("sub") userId: UUID,
     @Query(
