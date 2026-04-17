@@ -16,6 +16,18 @@ import { JwtPayload, Public } from "./decorators";
 import JwtPayloadDto from "./dtos/jwt-payload.dto";
 import { JwtCookieAuthGuard, REFRESH_TOKEN_COOKIE } from "./jwt-auth.guard";
 import { ConfigService } from "@nestjs/config";
+import {
+  ApiConflictResponse,
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import TokenResponseDto from "./dtos/token-response.dto";
+import UserResponseDto from "./dtos/user-response.dto";
+import { ApiErrorResponseDto } from "src/common/api-error-response.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -26,10 +38,18 @@ export class AuthController {
 
   @Public()
   @Post("login")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Log into system" })
+  @ApiOkResponse({ type: TokenResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  @ApiUnauthorizedResponse({
+    type: ApiErrorResponseDto,
+    description: "Incorrect credentials",
+  })
   async login(
     @Body() logInDto: LogInDto,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<TokenResponseDto> {
     const result = await this.authService.login(logInDto);
     response.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, {
       httpOnly: true,
@@ -43,7 +63,13 @@ export class AuthController {
   @Public()
   @Post("sign-up")
   @HttpCode(HttpStatus.CREATED)
-  async signUp(@Body() signUpDto: SignUpDto) {
+  @ApiOperation({ summary: "Create an account" })
+  @ApiCreatedResponse({ type: UserResponseDto })
+  @ApiConflictResponse({
+    type: ApiErrorResponseDto,
+    description: "User already exists",
+  })
+  async signUp(@Body() signUpDto: SignUpDto): Promise<UserResponseDto> {
     const user = await this.authService.signUp(signUpDto);
     return {
       id: user.id,
@@ -54,12 +80,16 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(JwtCookieAuthGuard)
   @Post("refresh")
+  @UseGuards(JwtCookieAuthGuard)
+  @ApiOperation({ summary: "Refresh access token" })
+  @ApiOkResponse({ type: TokenResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  @ApiCookieAuth("refresh-token")
   refreshAccessToken(
     @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
     @JwtPayload() payload: JwtPayloadDto,
-  ) {
+  ): Promise<TokenResponseDto> {
     return this.authService.refreshAccessToken(payload, refreshToken);
   }
 }

@@ -8,6 +8,7 @@ import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import JwtPayloadDto from "./dtos/jwt-payload.dto";
 import { PasswordService } from "./password.service";
+import TokenResponseDto from "./dtos/token-response.dto";
 
 @Injectable()
 export class AuthService {
@@ -38,7 +39,7 @@ export class AuthService {
     return this.prepareTokenResponse(user);
   }
 
-  private prepareTokenResponse(user: User) {
+  private prepareTokenResponse(user: User): TokenResponseDto {
     const payload: JwtPayloadDto = {
       email: user.email,
       sub: user.id,

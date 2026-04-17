@@ -47,6 +47,6 @@ jobs:
       - name: Post-deploy test
         uses: ./.github/actions/wait-for-health
         with:
-          url: http://localhost:${{ vars.API_PORT }}/health
+          url: http://localhost:${{ vars.API_PORT }}/api/health
           attempts: 8
           sleep: 2
