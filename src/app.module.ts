@@ -12,6 +12,7 @@ import { AuthModule } from "./auth/auth.module";
 import { APP_GUARD } from "@nestjs/core";
 import { JwtAuthGuard } from "./auth/jwt-auth.guard";
 import { RolesGuard } from "./auth/roles.guard";
+import { HttpLoggerMiddleware } from "./common/http-logger.middleware";
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { RolesGuard } from "./auth/roles.guard";
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
+    consumer.apply(HttpLoggerMiddleware).forRoutes("*");
     consumer.apply(CorrelationIdMiddleware).forRoutes("*");
   }
 }
