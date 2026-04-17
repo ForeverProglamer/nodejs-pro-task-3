@@ -23,15 +23,20 @@ import { UUID } from "crypto";
 import { OrderStatus } from "./order.entity";
 import { JwtPayload } from "src/auth/decorators";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiHeader,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
 } from "@nestjs/swagger";
 import OrderResponseDto from "./order-response.dto";
+import { ApiErrorResponseDto } from "src/common/api-error-response.dto";
 
 @ApiBearerAuth()
 @Controller("orders")
@@ -42,6 +47,22 @@ export class OrdersController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: "Create order" })
   @ApiCreatedResponse({ type: OrderResponseDto })
+  @ApiBadRequestResponse({
+    type: ApiErrorResponseDto,
+    description: "Missing idempotency-key header",
+  })
+  @ApiNotFoundResponse({
+    type: ApiErrorResponseDto,
+    description: "Product not found",
+  })
+  @ApiConflictResponse({
+    type: ApiErrorResponseDto,
+    description: "Not enough items in stock",
+  })
+  @ApiInternalServerErrorResponse({
+    type: ApiErrorResponseDto,
+    description: "Failed to create order",
+  })
   @ApiHeader({
     name: "idempotency-key",
     required: true,
@@ -67,6 +88,7 @@ export class OrdersController {
   @Get(":id")
   @ApiOperation({ summary: "Get order by ID" })
   @ApiOkResponse({ type: OrderResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
   @ApiParam({ name: "id", example: "0e8fd161-5c56-4dba-8c7a-6f422ea4d8ee" })
   async findById(
     @JwtPayload("sub") userId: UUID,

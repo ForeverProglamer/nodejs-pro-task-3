@@ -17,13 +17,17 @@ import JwtPayloadDto from "./dtos/jwt-payload.dto";
 import { JwtCookieAuthGuard, REFRESH_TOKEN_COOKIE } from "./jwt-auth.guard";
 import { ConfigService } from "@nestjs/config";
 import {
+  ApiConflictResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import TokenResponseDto from "./dtos/token-response.dto";
 import UserResponseDto from "./dtos/user-response.dto";
+import { ApiErrorResponseDto } from "src/common/api-error-response.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -37,6 +41,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Log into system" })
   @ApiOkResponse({ type: TokenResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  @ApiUnauthorizedResponse({
+    type: ApiErrorResponseDto,
+    description: "Incorrect credentials",
+  })
   async login(
     @Body() logInDto: LogInDto,
     @Res({ passthrough: true }) response: Response,
@@ -56,6 +65,10 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: "Create an account" })
   @ApiCreatedResponse({ type: UserResponseDto })
+  @ApiConflictResponse({
+    type: ApiErrorResponseDto,
+    description: "User already exists",
+  })
   async signUp(@Body() signUpDto: SignUpDto): Promise<UserResponseDto> {
     const user = await this.authService.signUp(signUpDto);
     return {
@@ -71,6 +84,7 @@ export class AuthController {
   @UseGuards(JwtCookieAuthGuard)
   @ApiOperation({ summary: "Refresh access token" })
   @ApiOkResponse({ type: TokenResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
   @ApiCookieAuth(REFRESH_TOKEN_COOKIE)
   refreshAccessToken(
     @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
