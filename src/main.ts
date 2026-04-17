@@ -5,6 +5,7 @@ import { HttpExceptionFilter } from "./common/http-exception.filter";
 import * as cookieParser from "cookie-parser";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { REFRESH_TOKEN_COOKIE } from "./auth/jwt-auth.guard";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,7 +25,11 @@ async function bootstrap() {
     )
     .setVersion("1.0")
     .addBearerAuth()
-    .addCookieAuth("refreshToken")
+    .addCookieAuth(
+      REFRESH_TOKEN_COOKIE,
+      { type: "apiKey", in: "cookie" },
+      "refresh-token",
+    )
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, documentFactory);

@@ -85,7 +85,7 @@ export class AuthController {
   @ApiOperation({ summary: "Refresh access token" })
   @ApiOkResponse({ type: TokenResponseDto })
   @ApiNotFoundResponse({ type: ApiErrorResponseDto })
-  @ApiCookieAuth(REFRESH_TOKEN_COOKIE)
+  @ApiCookieAuth("refresh-token")
   refreshAccessToken(
     @Cookies(REFRESH_TOKEN_COOKIE) refreshToken: string,
     @JwtPayload() payload: JwtPayloadDto,
