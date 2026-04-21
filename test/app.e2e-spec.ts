@@ -35,7 +35,7 @@ async function waitFor(
 
 describe("App (e2e)", () => {
   let app: INestApplication;
-  let server: any;
+  let server: ReturnType<INestApplication["getHttpServer"]>;
   let accessToken: string;
   let productsRepo: Repository<Product>;
 
@@ -62,7 +62,7 @@ describe("App (e2e)", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   const createProduct = (override: Partial<Product>): Promise<Product> => {
