@@ -4,11 +4,12 @@ import * as request from "supertest";
 import { AppModule } from "../src/app.module";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import Product from "src/products/product.entity";
-import { In, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { CreateOrderDto } from "src/orders/create-order.dto";
 import LogInDto from "src/auth/dtos/log-in.dto";
 import { USER_EMAIL, USER_PASS } from "src/seed/constants";
 import { randomUUID } from "crypto";
+import ProductResponseDto from "src/products/product-response.dto";
 
 async function waitFor(
   fn: () => Promise<void>,
@@ -75,21 +76,19 @@ describe("App (e2e)", () => {
   };
 
   it("GET /health -> 200", async () => {
-    return request(app.getHttpServer()).get("/health").expect(200);
+    return request(server).get("/health").expect(200);
   });
 
-  it("POST /orders -> 201, then GET /orders/:id -> 200", async () => {
-    const [product1, product2] = await Promise.all([
+  it("POST /orders -> 201, then GET /products/:id -> stock decreased, and GET /orders/:id -> 200", async () => {
+    const products = await Promise.all([
       createProduct({ title: "Mouse", stock: 10 }),
       createProduct({ title: "Keyboard", stock: 10 }),
     ]);
     const dto: CreateOrderDto = {
-      items: [
-        { id: product1.id, qty: 1 },
-        { id: product2.id, qty: 1 },
-      ],
+      items: products.map((p) => ({ id: p.id, qty: 1 })),
     };
 
+    // POST /orders
     const response = await request(server)
       .post("/orders")
       .send(dto)
@@ -102,14 +101,17 @@ describe("App (e2e)", () => {
     expect(response.body.items).toHaveLength(dto.items.length);
     expect(response.body.id).toBeDefined();
 
-    // TODO: use products backend API instead of repository
-    const updatedProducts = await productsRepo.findBy({
-      id: In([product1.id, product2.id]),
+    // GET /products/:id
+    const responses = await Promise.all(
+      products.map((p) => request(server).get(`/products/${p.id}`)),
+    );
+    expect(responses.every((r) => r.ok)).toEqual(true);
+    const updatedProducts: ProductResponseDto[] = responses.map((r) => r.body);
+    updatedProducts.forEach((product, i) => {
+      expect(product.stock).toBe(products[i].stock - 1);
     });
-    expect(updatedProducts.length).toEqual(dto.items.length);
-    expect(updatedProducts[0].stock).toEqual(product1.stock - 1);
-    expect(updatedProducts[1].stock).toEqual(product2.stock - 1);
 
+    // GET /orders/:id
     // Wait for background order processing
     await waitFor(async () => {
       const res = await request(server)
