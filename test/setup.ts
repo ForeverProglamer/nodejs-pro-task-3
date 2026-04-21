@@ -16,20 +16,16 @@ let rabbitmqContainer: StartedRabbitMQContainer;
 jest.setTimeout(120_000);
 
 beforeAll(async () => {
-  postgresContainer = await new PostgreSqlContainer("postgres:17.4-alpine3.21")
-    .withDatabase("test_db")
-    .withUsername("postgres")
-    .withPassword("postgres")
-    .start();
-  rabbitmqContainer = await new RabbitMQContainer(
-    "rabbitmq:4.2.4-management-alpine",
-  ).start();
+  [postgresContainer, rabbitmqContainer] = await Promise.all([
+    new PostgreSqlContainer("postgres:17.4-alpine3.21").start(),
+    new RabbitMQContainer("rabbitmq:4.2.4-management-alpine").start(),
+  ]);
 
   process.env.DB_HOST = postgresContainer.getHost();
   process.env.DB_PORT = postgresContainer.getPort().toString();
-  process.env.DB_USER = "postgres";
-  process.env.DB_PASSWORD = "postgres";
-  process.env.DB_NAME = "test_db";
+  process.env.DB_USER = postgresContainer.getUsername();
+  process.env.DB_PASSWORD = postgresContainer.getPassword();
+  process.env.DB_NAME = postgresContainer.getDatabase();
 
   process.env.RABBITMQ_URL = rabbitmqContainer.getAmqpUrl();
 
@@ -58,9 +54,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  try {
-    await postgresContainer?.stop();
-  } finally {
-    await rabbitmqContainer?.stop();
-  }
+  await Promise.allSettled([
+    postgresContainer?.stop(),
+    rabbitmqContainer?.stop(),
+  ]);
 });
