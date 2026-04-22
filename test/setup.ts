@@ -9,33 +9,53 @@ import {
 import User, { UserRole } from "src/users/user.entity";
 import { hash } from "src/auth/utils";
 import { USER_EMAIL, USER_PASS } from "src/seed/constants";
+import type { DataSource } from "typeorm";
+import { AbstractStartedContainer } from "testcontainers";
 
 let postgresContainer: StartedPostgreSqlContainer;
 let rabbitmqContainer: StartedRabbitMQContainer;
 
 jest.setTimeout(120_000);
 
-beforeAll(async () => {
-  [postgresContainer, rabbitmqContainer] = await Promise.all([
+const isDefined = <T>(val: T | undefined): val is T => val !== undefined;
+
+type MaybeStarted = AbstractStartedContainer | undefined;
+
+const startContainers = async (): Promise<
+  [StartedPostgreSqlContainer, StartedRabbitMQContainer]
+> => {
+  const [pg, rabbit] = await Promise.all([
     new PostgreSqlContainer("postgres:17.4-alpine3.21").start(),
     new RabbitMQContainer("rabbitmq:4.2.4-management-alpine").start(),
   ]);
+  return [pg, rabbit];
+};
 
-  process.env.DB_HOST = postgresContainer.getHost();
-  process.env.DB_PORT = postgresContainer.getPort().toString();
-  process.env.DB_USER = postgresContainer.getUsername();
-  process.env.DB_PASSWORD = postgresContainer.getPassword();
-  process.env.DB_NAME = postgresContainer.getDatabase();
+const stopContainers = async (...containers: MaybeStarted[]) => {
+  await Promise.allSettled(containers.filter(isDefined).map((c) => c.stop()));
+};
 
-  process.env.RABBITMQ_URL = rabbitmqContainer.getAmqpUrl();
+const initializeEnv = (
+  pg: StartedPostgreSqlContainer,
+  rabbit: StartedRabbitMQContainer,
+) => {
+  process.env.DB_HOST = pg.getHost();
+  process.env.DB_PORT = pg.getPort().toString();
+  process.env.DB_USER = pg.getUsername();
+  process.env.DB_PASSWORD = pg.getPassword();
+  process.env.DB_NAME = pg.getDatabase();
 
-  const { default: AppDataSource } = await import("../data-source");
+  process.env.RABBITMQ_URL = rabbit.getAmqpUrl();
+};
 
+const initializeDb = async () => {
+  let appDataSource: DataSource | undefined;
+  ({ default: appDataSource } = await import("../data-source"));
   try {
-    await AppDataSource.initialize();
-    await AppDataSource.runMigrations();
+    await appDataSource.initialize();
+    await appDataSource.runMigrations();
 
-    const usersRepo = AppDataSource.getRepository(User);
+    const usersRepo = appDataSource.getRepository(User);
     const user = await usersRepo.findOne({
       where: { email: USER_EMAIL },
     });
@@ -46,16 +66,29 @@ beforeAll(async () => {
         role: UserRole.USER,
       });
     }
-  } catch (err) {
-    console.error(err);
   } finally {
-    await AppDataSource.destroy();
+    if (appDataSource?.isInitialized) {
+      await appDataSource.destroy();
+    }
+  }
+};
+
+beforeAll(async () => {
+  try {
+    [postgresContainer, rabbitmqContainer] = await startContainers();
+    initializeEnv(postgresContainer, rabbitmqContainer);
+    await initializeDb();
+  } catch (err) {
+    await stopContainers(postgresContainer, rabbitmqContainer);
+    postgresContainer = undefined as never;
+    rabbitmqContainer = undefined as never;
+    throw err;
   }
 });
 
 afterAll(async () => {
-  await Promise.allSettled([
-    postgresContainer?.stop(),
-    rabbitmqContainer?.stop(),
-  ]);
+  if (!postgresContainer && !rabbitmqContainer) return;
+  await stopContainers(postgresContainer, rabbitmqContainer);
+  postgresContainer = undefined as never;
+  rabbitmqContainer = undefined as never;
 });
