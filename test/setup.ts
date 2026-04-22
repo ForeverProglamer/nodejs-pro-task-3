@@ -9,7 +9,6 @@ import {
 import User, { UserRole } from "src/users/user.entity";
 import { hash } from "src/auth/utils";
 import { USER_EMAIL, USER_PASS } from "src/seed/constants";
-import type { DataSource } from "typeorm";
 import { AbstractStartedContainer } from "testcontainers";
 
 let postgresContainer: StartedPostgreSqlContainer | undefined;
@@ -63,8 +62,7 @@ const initializeEnv = (
 };
 
 const initializeDb = async () => {
-  let appDataSource: DataSource | undefined;
-  ({ default: appDataSource } = await import("../data-source"));
+  const { default: appDataSource } = await import("../data-source");
   try {
     await appDataSource.initialize();
     await appDataSource.runMigrations();
