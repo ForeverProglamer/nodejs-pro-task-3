@@ -12,8 +12,8 @@ import { USER_EMAIL, USER_PASS } from "src/seed/constants";
 import type { DataSource } from "typeorm";
 import { AbstractStartedContainer } from "testcontainers";
 
-let postgresContainer: StartedPostgreSqlContainer;
-let rabbitmqContainer: StartedRabbitMQContainer;
+let postgresContainer: StartedPostgreSqlContainer | undefined;
+let rabbitmqContainer: StartedRabbitMQContainer | undefined;
 
 jest.setTimeout(120_000);
 
@@ -24,11 +24,25 @@ type MaybeStarted = AbstractStartedContainer | undefined;
 const startContainers = async (): Promise<
   [StartedPostgreSqlContainer, StartedRabbitMQContainer]
 > => {
-  const [pg, rabbit] = await Promise.all([
+  // Start all or fail strategy
+  const results = await Promise.allSettled([
     new PostgreSqlContainer("postgres:17.4-alpine3.21").start(),
     new RabbitMQContainer("rabbitmq:4.2.4-management-alpine").start(),
   ]);
-  return [pg, rabbit];
+
+  const rejected = results.filter((r) => r.status === "rejected");
+  const started = results
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
+
+  if (rejected.length > 0) {
+    await stopContainers(...started);
+    throw new AggregateError(
+      rejected.map((r) => r.reason),
+      "Failed to start containers",
+    );
+  }
+  return started as [StartedPostgreSqlContainer, StartedRabbitMQContainer];
 };
 
 const stopContainers = async (...containers: MaybeStarted[]) => {
@@ -74,21 +88,20 @@ const initializeDb = async () => {
 };
 
 beforeAll(async () => {
+  [postgresContainer, rabbitmqContainer] = await startContainers();
   try {
-    [postgresContainer, rabbitmqContainer] = await startContainers();
     initializeEnv(postgresContainer, rabbitmqContainer);
     await initializeDb();
   } catch (err) {
     await stopContainers(postgresContainer, rabbitmqContainer);
-    postgresContainer = undefined as never;
-    rabbitmqContainer = undefined as never;
+    postgresContainer = undefined;
+    rabbitmqContainer = undefined;
     throw err;
   }
 });
 
 afterAll(async () => {
-  if (!postgresContainer && !rabbitmqContainer) return;
   await stopContainers(postgresContainer, rabbitmqContainer);
-  postgresContainer = undefined as never;
-  rabbitmqContainer = undefined as never;
+  postgresContainer = undefined;
+  rabbitmqContainer = undefined;
 });
