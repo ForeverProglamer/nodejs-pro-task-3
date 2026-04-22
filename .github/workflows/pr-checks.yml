@@ -26,3 +26,6 @@ jobs:
 
       - name: Quality Gate - Docker build validation
         run: docker build --check .
+
+      - name: Run E2E tests
+        run: npm run test:e2e
