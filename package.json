@@ -11,7 +11,7 @@
     "db:generate": "typeorm-ts-node-commonjs -d data-source.ts migration:generate -p",
     "db:migrate": "typeorm-ts-node-commonjs -d data-source.ts migration:run",
     "db:revert": "typeorm-ts-node-commonjs -d data-source.ts migration:revert",
-    "db:seed": "ts-node -r tsconfig-paths/register src/seed/seed.ts",
+    "db:seed": "ts-node -r tsconfig-paths/register src/seed/cli.ts",
     "migration:run": "npm run db:migrate",
     "seed": "npm run db:seed",
     "concurrency:test": "ts-node -r tsconfig-paths/register scripts/concurrency-test.ts",
@@ -24,7 +24,7 @@
     "test:cov": "jest --coverage",
     "test:e2e": "jest --runInBand --config ./test/jest-e2e.json",
     "prod:db:migrate": "typeorm -d dist/data-source.js migration:run",
-    "prod:seed": "node dist/src/seed/seed.js"
+    "prod:seed": "node dist/src/seed/cli.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.3",

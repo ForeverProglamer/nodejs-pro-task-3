@@ -6,10 +6,8 @@ import {
   RabbitMQContainer,
   StartedRabbitMQContainer,
 } from "@testcontainers/rabbitmq";
-import User, { UserRole } from "src/users/user.entity";
-import { hash } from "src/auth/utils";
-import { USER_EMAIL, USER_PASS } from "src/seed/constants";
 import { AbstractStartedContainer } from "testcontainers";
+import seed from "src/seed";
 
 let postgresContainer: StartedPostgreSqlContainer | undefined;
 let rabbitmqContainer: StartedRabbitMQContainer | undefined;
@@ -66,18 +64,7 @@ const initializeDb = async () => {
   try {
     await appDataSource.initialize();
     await appDataSource.runMigrations();
-
-    const usersRepo = appDataSource.getRepository(User);
-    const user = await usersRepo.findOne({
-      where: { email: USER_EMAIL },
-    });
-    if (!user) {
-      await usersRepo.save({
-        email: USER_EMAIL,
-        password: await hash(USER_PASS),
-        role: UserRole.USER,
-      });
-    }
+    await seed({ ds: appDataSource });
   } finally {
     if (appDataSource?.isInitialized) {
       await appDataSource.destroy();

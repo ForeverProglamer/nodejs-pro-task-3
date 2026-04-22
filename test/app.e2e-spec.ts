@@ -4,12 +4,14 @@ import * as request from "supertest";
 import { AppModule } from "../src/app.module";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import Product from "src/products/product.entity";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { CreateOrderDto } from "src/orders/create-order.dto";
 import LogInDto from "src/auth/dtos/log-in.dto";
 import { USER_EMAIL, USER_PASS } from "src/seed/constants";
 import { randomUUID } from "crypto";
 import ProductResponseDto from "src/products/product-response.dto";
+import seed from "src/seed";
+import { Server } from "http";
 
 async function waitFor(
   fn: () => Promise<void>,
@@ -33,9 +35,29 @@ async function waitFor(
   }
 }
 
+const cleanDatabase = async (dataSource: DataSource) => {
+  const entities = dataSource.entityMetadatas;
+  for (const entity of entities) {
+    const repo = dataSource.getRepository(entity.name);
+    await repo.query(`TRUNCATE "${entity.tableName}" RESTART IDENTITY CASCADE`);
+  }
+};
+
+const authenticate = async (server: Server) => {
+  const loginDto: LogInDto = {
+    email: USER_EMAIL,
+    password: USER_PASS,
+  };
+  const loginResp = await request(server).post("/auth/login").send(loginDto);
+
+  expect(loginResp.status).toEqual(200);
+  expect(loginResp.body.accessToken).toBeDefined();
+  return loginResp.body.accessToken;
+};
+
 describe("App (e2e)", () => {
   let app: INestApplication;
-  let server: ReturnType<INestApplication["getHttpServer"]>;
+  let server: Server;
   let accessToken: string;
   let productsRepo: Repository<Product>;
 
@@ -48,21 +70,19 @@ describe("App (e2e)", () => {
     await app.init();
     server = app.getHttpServer();
 
-    const loginDto: LogInDto = {
-      email: USER_EMAIL,
-      password: USER_PASS,
-    };
-    const loginResp = await request(server).post("/auth/login").send(loginDto);
-
-    expect(loginResp.status).toEqual(200);
-    expect(loginResp.body.accessToken).toBeDefined();
-    accessToken = loginResp.body.accessToken;
-
+    accessToken = await authenticate(server);
     productsRepo = await app.resolve(getRepositoryToken(Product));
   });
 
   afterAll(async () => {
     await app?.close();
+  });
+
+  afterEach(async () => {
+    const ds = app.get(DataSource);
+    await cleanDatabase(ds);
+    await seed({ ds });
+    accessToken = await authenticate(server);
   });
 
   const createProduct = (override: Partial<Product>): Promise<Product> => {
