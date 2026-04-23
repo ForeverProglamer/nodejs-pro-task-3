@@ -69,8 +69,8 @@ describe("App (e2e)", () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
-    app.useGlobalFilters(new HttpExceptionFilter());
 
+    app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalPipes(
       new ValidationPipe({ transform: true, whitelist: true }),
     );
@@ -225,6 +225,36 @@ describe("App (e2e)", () => {
       productId: exclusive.id,
       askedQty: 10,
       stock: exclusive.stock,
+    });
+  });
+
+  it("POST /orders fails with bad data", async () => {
+    const nonExistingProductId = randomUUID();
+    const dto: CreateOrderDto = {
+      items: [{ id: nonExistingProductId, qty: 1 }],
+    };
+
+    const badResponse1 = await request(server)
+      .post("/orders")
+      .send(dto)
+      .auth(accessToken, { type: "bearer" });
+
+    expect(badResponse1.headers["content-type"]).toMatch(/json/);
+    expect(badResponse1.status).toEqual(400);
+    expect(badResponse1.body.code).toEqual("REQUEST_FAILED");
+    expect(badResponse1.body.message).toMatch(/Idempotency-Key/);
+
+    const badResponse2 = await request(server)
+      .post("/orders")
+      .send(dto)
+      .set("Idempotency-Key", randomUUID())
+      .auth(accessToken, { type: "bearer" });
+
+    expect(badResponse2.headers["content-type"]).toMatch(/json/);
+    expect(badResponse2.status).toEqual(404);
+    expect(badResponse2.body.code).toEqual("CANNOT_FIND_PRODUCTS");
+    expect(badResponse2.body.details).toMatchObject({
+      missingProductsCount: 1,
     });
   });
 });
