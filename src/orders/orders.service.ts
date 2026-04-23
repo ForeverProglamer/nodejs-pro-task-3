@@ -34,56 +34,63 @@ export class OrdersService {
     // TODO: ensure `dto.items` do not have duplicates, cause here we assume
     // that they don't
     this.logger.log("Creating order", { userId, idempotencyKey, dto });
-    const created = await this.dataSource.transaction(async (mngr) => {
-      const ordersRepo = mngr.getRepository(Order);
-      const productsRepo = mngr.getRepository(Product);
-      const orderItemsRepo = mngr.getRepository(OrderItem);
+    const [order, isDuplicate] = await this.dataSource.transaction(
+      async (mngr) => {
+        const ordersRepo = mngr.getRepository(Order);
+        const productsRepo = mngr.getRepository(Product);
+        const orderItemsRepo = mngr.getRepository(OrderItem);
 
-      const { order, isDuplicate } = await this.createOrderWithDedup(
-        ordersRepo,
-        { userId, idempotencyKey },
-      );
-      if (isDuplicate) return order;
+        const { order, isDuplicate } = await this.createOrderWithDedup(
+          ordersRepo,
+          { userId, idempotencyKey },
+        );
+        if (isDuplicate) return [order, isDuplicate];
 
-      const products = await productsRepo
-        .createQueryBuilder("product")
-        .where("product.id IN (:...ids)", {
-          ids: dto.items.map((i) => i.id),
-        })
-        .setLock("pessimistic_write")
-        .getMany();
-      if (products.length !== dto.items.length)
-        throw new CannotFindProductsError(dto.items.length - products.length);
+        const products = await productsRepo
+          .createQueryBuilder("product")
+          .where("product.id IN (:...ids)", {
+            ids: dto.items.map((i) => i.id),
+          })
+          .setLock("pessimistic_write")
+          .getMany();
+        if (products.length !== dto.items.length)
+          throw new CannotFindProductsError(dto.items.length - products.length);
 
-      const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
-      const partialItems: Partial<OrderItem>[] = [];
-      for (const p of products) {
-        const askedQty = dtoIdToQty.get(p.id) as number;
-        if (p.stock < askedQty)
-          throw new NotEnoughItemsInStockError(p.id, askedQty, p.stock);
+        const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
+        const partialItems: Partial<OrderItem>[] = [];
+        for (const p of products) {
+          const askedQty = dtoIdToQty.get(p.id) as number;
+          if (p.stock < askedQty)
+            throw new NotEnoughItemsInStockError(p.id, askedQty, p.stock);
 
-        partialItems.push({
-          orderId: order.id,
-          productId: p.id,
-          qty: askedQty,
-          purchasePrice: p.price,
-        });
-        p.stock -= askedQty;
-      }
-      await orderItemsRepo.save(partialItems);
-      await productsRepo.save(products);
-      return await this.findOrderOrFail(ordersRepo, { id: order.id });
-    });
-
-    this.logger.log("Order created", { userId, idempotencyKey, created });
-
-    // NOTE: posts a message to broker for existing order (the same idempotencyKey)
-    this.rabbitmq.send(
-      "orders.process",
-      new ProcessOrderMessageDto(created.id, created.id),
+          partialItems.push({
+            orderId: order.id,
+            productId: p.id,
+            qty: askedQty,
+            purchasePrice: p.price,
+          });
+          p.stock -= askedQty;
+        }
+        await orderItemsRepo.save(partialItems);
+        await productsRepo.save(products);
+        return [
+          await this.findOrderOrFail(ordersRepo, { id: order.id }),
+          isDuplicate,
+        ];
+      },
     );
 
-    return created;
+    if (isDuplicate) {
+      this.logger.log("Retrieved existing", { userId, idempotencyKey, order });
+      return order;
+    }
+
+    this.logger.log("Order created", { userId, idempotencyKey, order });
+    this.rabbitmq.send(
+      "orders.process",
+      new ProcessOrderMessageDto(order.id, order.id),
+    );
+    return order;
   }
 
   private async createOrderWithDedup(
