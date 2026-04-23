@@ -1,7 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { DataSource, EntityManager, Repository } from "typeorm";
+import {
+  DataSource,
+  EntityManager,
+  FindOptionsWhere,
+  Repository,
+} from "typeorm";
 import Order, { OrderStatus } from "./order.entity";
 import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
@@ -26,32 +31,31 @@ export class OrdersService {
   ) {}
 
   async createOrder(userId: UUID, dto: CreateOrderDto, idempotencyKey: UUID) {
-    this.logger.log(`Initiating order creation`, { dto, idempotencyKey });
+    // TODO: ensure `dto.items` do not have duplicates, cause here we assume
+    // that they don't
+    this.logger.log("Creating order", { userId, idempotencyKey, dto });
     const created = await this.dataSource.transaction(async (mngr) => {
       const ordersRepo = mngr.getRepository(Order);
       const productsRepo = mngr.getRepository(Product);
       const orderItemsRepo = mngr.getRepository(OrderItem);
 
-      const existingOrder = await ordersRepo.findOne({
-        where: { userId: userId, idempotencyKey },
-        relations: { items: true },
-      });
-      if (existingOrder) return existingOrder;
+      const { order, isDuplicate } = await this.createOrderWithDedup(
+        ordersRepo,
+        { userId, idempotencyKey },
+      );
+      if (isDuplicate) return order;
 
-      const dtoProductIds = [...new Set(dto.items.map((i) => i.id))];
       const products = await productsRepo
         .createQueryBuilder("product")
-        .where("product.id IN (:...ids)", { ids: dtoProductIds })
+        .where("product.id IN (:...ids)", {
+          ids: dto.items.map((i) => i.id),
+        })
         .setLock("pessimistic_write")
         .getMany();
       if (products.length !== dto.items.length)
         throw new CannotFindProductsError(dto.items.length - products.length);
 
-      this.logger.log({ products });
       const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
-      const order = await ordersRepo.save({ userId, idempotencyKey });
-      this.logger.log({ order });
-
       const partialItems: Partial<OrderItem>[] = [];
       for (const p of products) {
         const askedQty = dtoIdToQty.get(p.id) as number;
@@ -66,19 +70,12 @@ export class OrdersService {
         });
         p.stock -= askedQty;
       }
-      const items = await orderItemsRepo.save(partialItems);
-      const updatedProducts = await productsRepo.save(products);
-      this.logger.log({ items, updatedProducts });
-
-      const created = await ordersRepo.findOne({
-        where: { id: order.id },
-        relations: { items: true },
-      });
-      if (!created) {
-        throw new FailedToCreateOrderError();
-      }
-      return created;
+      await orderItemsRepo.save(partialItems);
+      await productsRepo.save(products);
+      return await this.findOrderOrFail(ordersRepo, { id: order.id });
     });
+
+    this.logger.log("Order created", { userId, idempotencyKey, created });
 
     // NOTE: posts a message to broker for existing order (the same idempotencyKey)
     this.rabbitmq.send(
@@ -86,6 +83,38 @@ export class OrdersService {
       new ProcessOrderMessageDto(created.id, created.id),
     );
 
+    return created;
+  }
+
+  private async createOrderWithDedup(
+    ordersRepo: Repository<Order>,
+    { userId, idempotencyKey }: Pick<Order, "userId" | "idempotencyKey">,
+  ): Promise<{ order: Order; isDuplicate: boolean }> {
+    try {
+      const order = await ordersRepo.save({ userId, idempotencyKey });
+      return { order, isDuplicate: false };
+    } catch (err) {
+      if (String(err?.code) === "23505") {
+        // NOTE: At this point tx is aborted, so we cannot use the same repo
+        // instance with the same connection
+        const order = await this.findOrderOrFail(this.ordersRepo, {
+          userId,
+          idempotencyKey,
+        });
+        return { order, isDuplicate: true };
+      }
+      throw err;
+    }
+  }
+
+  private async findOrderOrFail(
+    repo: Repository<Order>,
+    where: FindOptionsWhere<Order>,
+  ) {
+    const created = await repo.findOne({ where, relations: { items: true } });
+    if (!created) {
+      throw new FailedToCreateOrderError();
+    }
     return created;
   }
 

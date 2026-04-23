@@ -143,4 +143,54 @@ describe("App (e2e)", () => {
       expect(res.body.status).toEqual("processed");
     });
   });
+
+  it("POST /orders multiple submission = 1 order, then GET /products/:id -> stock decreased only once", async () => {
+    const products = await Promise.all([
+      createProduct({ title: "Product 1", stock: 3 }),
+      createProduct({ title: "Product 2", stock: 6 }),
+    ]);
+    const dto: CreateOrderDto = {
+      items: products.map((p) => ({ id: p.id, qty: 1 })),
+    };
+
+    // POST /orders
+    const submitOrder = async (token: string, idempotencyKey: string) => {
+      return await request(server)
+        .post("/orders")
+        .send(dto)
+        .set("Idempotency-Key", idempotencyKey)
+        .auth(token, { type: "bearer" });
+    };
+
+    const idempotencyKey = randomUUID();
+    const doubleSubmission = await Promise.all([
+      submitOrder(accessToken, idempotencyKey),
+      submitOrder(accessToken, idempotencyKey),
+    ]);
+
+    doubleSubmission.forEach((response) => {
+      expect(response.headers["content-type"]).toMatch(/json/);
+      expect(response.status).toEqual(201);
+
+      expect(response.body.items).toHaveLength(dto.items.length);
+      expect(response.body.status).toEqual("created");
+      expect(response.body.id).toBeDefined();
+      expect(response.body.createdAt).toBeDefined();
+    });
+
+    expect(doubleSubmission[0].body.id).toEqual(doubleSubmission[1].body.id);
+    expect(doubleSubmission[0].body.createdAt).toEqual(
+      doubleSubmission[1].body.createdAt,
+    );
+
+    // GET /products/:id
+    const responses = await Promise.all(
+      products.map((p) => request(server).get(`/products/${p.id}`)),
+    );
+    expect(responses.every((r) => r.ok)).toEqual(true);
+    const updatedProducts: ProductResponseDto[] = responses.map((r) => r.body);
+    updatedProducts.forEach((product, i) => {
+      expect(product.stock).toBe(products[i].stock - 1);
+    });
+  });
 });
