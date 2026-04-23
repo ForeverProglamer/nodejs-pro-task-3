@@ -1,5 +1,5 @@
 import { Test } from "@nestjs/testing";
-import { INestApplication } from "@nestjs/common";
+import { INestApplication, ValidationPipe } from "@nestjs/common";
 import * as request from "supertest";
 import { AppModule } from "../src/app.module";
 import { getRepositoryToken } from "@nestjs/typeorm";
@@ -12,6 +12,8 @@ import { randomUUID } from "crypto";
 import ProductResponseDto from "src/products/product-response.dto";
 import seed from "src/seed";
 import { Server } from "http";
+import { HttpExceptionFilter } from "src/common/http-exception.filter";
+import * as cookieParser from "cookie-parser";
 
 async function waitFor(
   fn: () => Promise<void>,
@@ -67,6 +69,13 @@ describe("App (e2e)", () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
+    app.useGlobalFilters(new HttpExceptionFilter());
+
+    app.useGlobalPipes(
+      new ValidationPipe({ transform: true, whitelist: true }),
+    );
+    app.use(cookieParser());
+
     await app.init();
     server = app.getHttpServer();
 
@@ -191,6 +200,31 @@ describe("App (e2e)", () => {
     const updatedProducts: ProductResponseDto[] = responses.map((r) => r.body);
     updatedProducts.forEach((product, i) => {
       expect(product.stock).toBe(products[i].stock - 1);
+    });
+  });
+
+  it("POST /orders fails if not enough items in stock", async () => {
+    const [common, exclusive] = await Promise.all([
+      createProduct({ title: "Common product", stock: 100 }),
+      createProduct({ title: "Exclusive product", stock: 5 }),
+    ]);
+    const dto: CreateOrderDto = {
+      items: [common, exclusive].map((p) => ({ id: p.id, qty: 10 })),
+    };
+
+    const response = await request(server)
+      .post("/orders")
+      .send(dto)
+      .set("Idempotency-Key", randomUUID())
+      .auth(accessToken, { type: "bearer" });
+
+    expect(response.headers["content-type"]).toMatch(/json/);
+    expect(response.status).toEqual(409);
+    expect(response.body.code).toEqual("NOT_ENOUGH_ITEMS_IN_STOCK");
+    expect(response.body.details).toMatchObject({
+      productId: exclusive.id,
+      askedQty: 10,
+      stock: exclusive.stock,
     });
   });
 });
