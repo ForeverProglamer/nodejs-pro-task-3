@@ -257,4 +257,41 @@ describe("App (e2e)", () => {
       missingProductsCount: 1,
     });
   });
+
+  it("POST /orders is protected from oversell", async () => {
+    const product = await createProduct({ title: "Hot product", stock: 20 });
+    const dto: CreateOrderDto = {
+      items: [{ id: product.id, qty: 1 }],
+    };
+
+    const productResponse1 = await request(server).get(
+      `/products/${product.id}`,
+    );
+    expect(productResponse1.status).toBe(200);
+    expect(productResponse1.body.stock).toBe(product.stock);
+
+    const submitOrder = async () => {
+      return await request(server)
+        .post("/orders")
+        .send(dto)
+        .set("Idempotency-Key", randomUUID())
+        .auth(accessToken, { type: "bearer" });
+    };
+
+    const requestsCount = 30;
+    const responses = await Promise.all(
+      Array.from({ length: requestsCount }, () => submitOrder()),
+    );
+    const successful = responses.filter((r) => r.status === 201);
+    const conflict = responses.filter((r) => r.status === 409);
+
+    expect(successful.length).toBe(product.stock);
+    expect(conflict.length).toBe(requestsCount - product.stock);
+
+    const productResponse2 = await request(server).get(
+      `/products/${product.id}`,
+    );
+    expect(productResponse2.status).toBe(200);
+    expect(productResponse2.body.stock).toBe(0);
+  });
 });
