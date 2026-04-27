@@ -1,14 +1,15 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import Product from "./product.entity";
-import { Repository } from "typeorm";
+import { Inject, Injectable } from "@nestjs/common";
 import { UUID } from "crypto";
+import {
+  IProductsRepository,
+  PRODUCTS_REPOSITORY,
+} from "./products.repository";
 
 @Injectable()
 export class ProductsService {
-  constructor(@InjectRepository(Product) private repo: Repository<Product>) {}
+  constructor(@Inject(PRODUCTS_REPOSITORY) private repo: IProductsRepository) {}
 
   findById(id: UUID) {
-    return this.repo.findOneBy({ id });
+    return this.repo.findOneById(id);
   }
 }
