@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { EntityManager } from "typeorm";
 import Order, { OrderStatus } from "./order.entity";
 import OrderItem from "./order-item.entity";
 import {
@@ -11,7 +10,6 @@ import {
 } from "src/common/errors";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { ProcessOrderMessageDto } from "./process-order-message.dto";
-import { sleep } from "src/common/utils";
 import { IOrdersRepository, ORDERS_REPOSITORY } from "./orders.repository";
 import { IUnitOfWork, UNIT_OF_WORK } from "src/common/unit-of-work";
 
@@ -76,25 +74,6 @@ export class OrdersService {
       new ProcessOrderMessageDto(order.id, order.id),
     );
     return order;
-  }
-
-  async processOrderMessage(
-    msg: ProcessOrderMessageDto,
-    manager: EntityManager,
-  ) {
-    await sleep(2);
-    if (msg.simulateFailure) {
-      // Debug-only
-      const { reason, stopOnAttempt } = msg.simulateFailure;
-      if (stopOnAttempt === msg.attempt) return;
-      throw new Error(reason);
-    }
-    const ordersRepo = manager.getRepository(Order);
-    const { orderId } = msg;
-    await ordersRepo.update(
-      { id: orderId },
-      { id: orderId, status: OrderStatus.PROCESSED, processedAt: new Date() },
-    );
   }
 
   findById(id: UUID, userId?: UUID) {
