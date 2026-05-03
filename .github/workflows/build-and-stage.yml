@@ -93,15 +93,19 @@ jobs:
           API_PORT: ${{ vars.API_PORT }}
           # Just to be explicit about dependency on IMAGE
           IMAGE: ${{ env.IMAGE }}
+          JWT_AT_SECRET: ${{ secrets.JWT_AT_SECRET }}
+          JWT_RT_SECRET: ${{ secrets.JWT_RT_SECRET }}
         run: |
           cp .env.example .env
           echo "DB_PASSWORD=$DB_PASSWORD" >> .env
           echo "API_PORT=$API_PORT" >> .env
+          echo "JWT_AT_SECRET=$JWT_AT_SECRET" >> .env
+          echo "JWT_RT_SECRET=$JWT_RT_SECRET" >> .env
           docker compose -f compose.prod.yml -p stage up -d
 
       - name: Post-deploy test
         uses: ./.github/actions/wait-for-health
         with:
-          url: http://localhost:${{ vars.API_PORT }}/health
+          url: http://localhost:${{ vars.API_PORT }}/api/health
           attempts: 8
           sleep: 2

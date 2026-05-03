@@ -1,11 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CreateOrderDto } from "./create-order.dto";
 import { UUID } from "crypto";
-import { DataSource, EntityManager, Repository } from "typeorm";
 import Order, { OrderStatus } from "./order.entity";
-import Product from "src/products/product.entity";
 import OrderItem from "./order-item.entity";
-import { InjectRepository } from "@nestjs/typeorm";
 import {
   CannotFindProductsError,
   FailedToCreateOrderError,
@@ -13,48 +10,37 @@ import {
 } from "src/common/errors";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { ProcessOrderMessageDto } from "./process-order-message.dto";
-import { sleep } from "src/common/utils";
+import { IOrdersRepository, ORDERS_REPOSITORY } from "./orders.repository";
+import { IUnitOfWork, UNIT_OF_WORK } from "src/common/unit-of-work";
 
 @Injectable()
 export class OrdersService {
   private readonly logger: Logger = new Logger(OrdersService.name);
 
   constructor(
-    @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
-    private readonly dataSource: DataSource,
+    @Inject(UNIT_OF_WORK) private readonly uow: IUnitOfWork,
+    @Inject(ORDERS_REPOSITORY) private readonly ordersRepo: IOrdersRepository,
     private readonly rabbitmq: RabbitMqService,
   ) {}
 
-  async createOrder(dto: CreateOrderDto, idempotencyKey: UUID) {
-    this.logger.log(`Initiating order creation`, { dto, idempotencyKey });
-    const created = await this.dataSource.transaction(async (mngr) => {
-      const ordersRepo = mngr.getRepository(Order);
-      const productsRepo = mngr.getRepository(Product);
-      const orderItemsRepo = mngr.getRepository(OrderItem);
-
-      const existingOrder = await ordersRepo.findOne({
-        where: { userId: dto.userId, idempotencyKey },
-        relations: { items: true },
+  async createOrder(userId: UUID, dto: CreateOrderDto, idempotencyKey: UUID) {
+    // TODO: ensure `dto.items` do not have duplicates, cause here we assume
+    // that they don't
+    this.logger.log("Creating order", { userId, idempotencyKey, dto });
+    const [order, isDuplicate] = await this.uow.transaction(async (tx) => {
+      const { result: order, isDuplicate } = await tx.ordersRepo.add({
+        userId,
+        idempotencyKey,
       });
-      if (existingOrder) return existingOrder;
+      if (isDuplicate) return [order, isDuplicate];
 
-      const dtoProductIds = [...new Set(dto.items.map((i) => i.id))];
-      const products = await productsRepo
-        .createQueryBuilder("product")
-        .where("product.id IN (:...ids)", { ids: dtoProductIds })
-        .setLock("pessimistic_write")
-        .getMany();
+      const products = await tx.productsRepo.findByIds(
+        dto.items.map((i) => i.id),
+      );
       if (products.length !== dto.items.length)
         throw new CannotFindProductsError(dto.items.length - products.length);
 
-      this.logger.log({ products });
       const dtoIdToQty = new Map(dto.items.map((i) => [i.id, i.qty]));
-      const order = await ordersRepo.save({
-        userId: dto.userId,
-        idempotencyKey,
-      });
-      this.logger.log({ order });
-
       const partialItems: Partial<OrderItem>[] = [];
       for (const p of products) {
         const askedQty = dtoIdToQty.get(p.id) as number;
@@ -69,87 +55,43 @@ export class OrdersService {
         });
         p.stock -= askedQty;
       }
-      const items = await orderItemsRepo.save(partialItems);
-      const updatedProducts = await productsRepo.save(products);
-      this.logger.log({ items, updatedProducts });
-
-      const created = await ordersRepo.findOne({
-        where: { id: order.id },
-        relations: { items: true },
-      });
-      if (!created) {
-        throw new FailedToCreateOrderError();
-      }
-      return created;
+      await tx.orderItemsRepo.extend(partialItems);
+      await tx.productsRepo.extend(products);
+      const result = await tx.ordersRepo.findOne({ id: order.id });
+      if (!result) throw new FailedToCreateOrderError();
+      await tx.commit();
+      return [result, isDuplicate];
     });
 
-    // NOTE: posts a message to broker for existing order (the same idempotencyKey)
+    if (isDuplicate) {
+      this.logger.log("Retrieved existing", { userId, idempotencyKey, order });
+      return order;
+    }
+
+    this.logger.log("Order created", { userId, idempotencyKey, order });
     this.rabbitmq.send(
       "orders.process",
-      new ProcessOrderMessageDto(created.id, created.id),
+      new ProcessOrderMessageDto(order.id, order.id),
     );
-
-    return created;
+    return order;
   }
 
-  async processOrderMessage(
-    msg: ProcessOrderMessageDto,
-    manager: EntityManager,
-  ) {
-    await sleep(2);
-    if (msg.simulateFailure) {
-      // Debug-only
-      const { reason, stopOnAttempt } = msg.simulateFailure;
-      if (stopOnAttempt === msg.attempt) return;
-      throw new Error(reason);
-    }
-    const ordersRepo = manager.getRepository(Order);
-    const { orderId } = msg;
-    await ordersRepo.update(
-      { id: orderId },
-      { id: orderId, status: OrderStatus.PROCESSED, processedAt: new Date() },
-    );
-  }
-
-  findById(id: UUID) {
-    return this.ordersRepo.findOne({
-      where: { id },
-      relations: { items: true },
-    });
+  findById(id: UUID, userId?: UUID) {
+    // NOTE: userId is required for cases when user fetches
+    // his own order data and is not required when admin does
+    // so. And we rely on controllers to distinguish between the two.
+    return this.ordersRepo.findOne({ id, userId });
   }
 
   list(
-    userId: UUID,
     status: OrderStatus,
     page: number,
     limit: number,
     from?: Date,
     to?: Date,
+    userId?: UUID,
   ) {
-    const qb = this.ordersRepo
-      .createQueryBuilder("orders")
-      .select(["orders.id", "orders.status", "orders.createdAt"])
-      .leftJoin("orders.items", "items")
-      .addSelect([
-        "items.orderId",
-        "items.productId",
-        "items.qty",
-        "items.purchasePrice",
-      ])
-      .where("orders.userId = :userId", { userId })
-      .andWhere("orders.status = :status", { status })
-      .orderBy("orders.createdAt", "DESC")
-      .take(limit)
-      .skip((page - 1) * limit);
-
-    if (from) {
-      qb.andWhere("orders.createdAt >= :from", { from });
-    }
-    if (to) {
-      qb.andWhere("orders.createdAt <= :to", { to });
-    }
-    this.logger.log(qb.getSql());
-    return qb.getMany();
+    return this.ordersRepo.find({ status, page, limit, from, to, userId });
   }
 
   toDto(orders: Order[]) {

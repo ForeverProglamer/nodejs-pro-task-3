@@ -1,18 +1,17 @@
 import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
-import { OrdersService } from "./orders.service";
 import { AckCallback, RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { ProcessOrderMessageDto } from "./process-order-message.dto";
 import { ConfigService } from "@nestjs/config";
-import { parseBoolean } from "src/common/utils";
-import { DataSource } from "typeorm";
+import { parseBoolean, sleep } from "src/common/utils";
+import { DataSource, EntityManager } from "typeorm";
 import ProcessedMessage from "src/common/processed-message.entity";
+import Order, { OrderStatus } from "./order.entity";
 
 @Injectable()
 export class OrdersWorkerService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OrdersWorkerService.name);
 
   constructor(
-    private readonly ordersService: OrdersService,
     private readonly rabbitmq: RabbitMqService,
     private readonly configService: ConfigService,
     private readonly datasource: DataSource,
@@ -78,7 +77,7 @@ export class OrdersWorkerService implements OnApplicationBootstrap {
         );
         throw err;
       }
-      await this.ordersService.processOrderMessage(msg, manager);
+      await this.processOrderMessage(msg, manager);
       return true;
     });
 
@@ -90,6 +89,25 @@ export class OrdersWorkerService implements OnApplicationBootstrap {
         msg,
       );
     }
+  }
+
+  protected async processOrderMessage(
+    msg: ProcessOrderMessageDto,
+    manager: EntityManager,
+  ) {
+    await sleep(2);
+    if (msg.simulateFailure) {
+      // Debug-only
+      const { reason, stopOnAttempt } = msg.simulateFailure;
+      if (stopOnAttempt === msg.attempt) return;
+      throw new Error(reason);
+    }
+    const ordersRepo = manager.getRepository(Order);
+    const { orderId } = msg;
+    await ordersRepo.update(
+      { id: orderId },
+      { id: orderId, status: OrderStatus.PROCESSED, processedAt: new Date() },
+    );
   }
 
   protected handleFailedProcessing(
