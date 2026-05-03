@@ -13,6 +13,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { JwtAuthGuard } from "./auth/jwt-auth.guard";
 import { RolesGuard } from "./auth/roles.guard";
 import { HttpLoggerMiddleware } from "./common/http-logger.middleware";
+import { CommonModule } from "./common/common.module";
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { HttpLoggerMiddleware } from "./common/http-logger.middleware";
     RabbitMqModule,
     DebugModule,
     AuthModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [
