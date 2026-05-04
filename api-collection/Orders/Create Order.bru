@@ -1,0 +1,31 @@
+meta {
+  name: Create Order
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/orders/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Idempotency-Key: 3cdf57cf-d149-4dec-a93f-bc023bb4da2f
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "id": "1203f9a8-2389-41f3-b450-a2bef2a3b2e0",
+        "qty": 3
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

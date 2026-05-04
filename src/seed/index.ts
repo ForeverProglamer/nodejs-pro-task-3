@@ -1,41 +1,46 @@
-import AppDataSource from "../../data-source";
+import { DataSource } from "typeorm";
+
+import { randomUUID } from "crypto";
 
 import User, { UserRole } from "../users/user.entity";
 import Product from "../products/product.entity";
 import Order, { OrderStatus } from "../orders/order.entity";
 import OrderItem from "../orders/order-item.entity";
-import { randomUUID } from "crypto";
+import { hash } from "src/auth/utils";
 
-const productData = [
-  {
-    title: "Laptop",
-    description: "High performance laptop",
-    stock: 10,
-    price: "1200",
-  },
-  {
-    title: "Mouse",
-    description: "Wireless mouse",
-    stock: 50,
-    price: "25",
-  },
-  {
-    title: "Keyboard",
-    description: "Mechanical keyboard",
-    stock: 30,
-    price: "100",
-  },
-];
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASS,
+  USER_EMAIL,
+  USER_PASS,
+  productData,
+} from "./constants";
 
-async function seed() {
-  await AppDataSource.initialize();
+const ensureInitializedDataSource = async (ds?: DataSource) => {
+  if (!ds) {
+    ({ default: ds } = await import("../../data-source"));
+    await ds.initialize();
+    return ds;
+  }
+  if (!ds.isInitialized) await ds.initialize();
+  return ds;
+};
 
-  const queryRunner = AppDataSource.createQueryRunner();
+type SeedOptions = {
+  ds?: DataSource;
+  silentMode?: boolean;
+};
+
+export default async function seed({ ds, silentMode = true }: SeedOptions) {
+  const log = silentMode ? () => {} : console.log;
+  const dataSource = await ensureInitializedDataSource(ds);
+
+  const queryRunner = dataSource.createQueryRunner();
   await queryRunner.connect();
   await queryRunner.startTransaction();
 
   try {
-    console.log("🌱 Seeding started...");
+    log("🌱 Seeding started...");
 
     const manager = queryRunner.manager;
 
@@ -48,31 +53,33 @@ async function seed() {
      * USERS
      */
     let admin = await userRepo.findOne({
-      where: { email: "admin@example.com" },
+      where: { email: ADMIN_EMAIL },
     });
 
     if (!admin) {
       admin = userRepo.create({
-        email: "admin@example.com",
+        email: ADMIN_EMAIL,
+        password: await hash(ADMIN_PASS),
         role: UserRole.ADMIN,
       });
 
       await userRepo.save(admin);
-      console.log("✅ Admin created");
+      log("✅ Admin created");
     }
 
     let user = await userRepo.findOne({
-      where: { email: "user@example.com" },
+      where: { email: USER_EMAIL },
     });
 
     if (!user) {
       user = userRepo.create({
-        email: "user@example.com",
+        email: USER_EMAIL,
+        password: await hash(USER_PASS),
         role: UserRole.USER,
       });
 
       await userRepo.save(user);
-      console.log("✅ User created");
+      log("✅ User created");
     }
 
     /**
@@ -88,7 +95,7 @@ async function seed() {
       if (!product) {
         product = productRepo.create(data);
         await productRepo.save(product);
-        console.log(`✅ Product ${data.title} created`);
+        log(`✅ Product ${data.title} created`);
       }
 
       products.push(product);
@@ -115,10 +122,10 @@ async function seed() {
       });
 
       await orderRepo.save(order);
-      console.log("✅ Order created");
+      log("✅ Order created");
     } else {
       order = existingOrder;
-      console.log("ℹ️ Order already exists");
+      log("ℹ️ Order already exists");
     }
 
     /**
@@ -148,20 +155,21 @@ async function seed() {
 
       await orderItemRepo.save([item1, item2]);
 
-      console.log("✅ Order items created");
+      log("✅ Order items created");
     } else {
-      console.log("ℹ️ Order items already exist");
+      log("ℹ️ Order items already exist");
     }
 
     await queryRunner.commitTransaction();
-    console.log("🎉 Seeding finished successfully");
+    log("🎉 Seeding finished successfully");
   } catch (error) {
-    console.error("❌ Seeding failed:", error);
+    log("❌ Seeding failed:", error);
     await queryRunner.rollbackTransaction();
+    throw error;
   } finally {
     await queryRunner.release();
-    await AppDataSource.destroy();
+    // NOTE: This code does not control lifecycle of injected DataSource
+    // `.destroy()` only if it was created here.
+    if (!ds) await dataSource.destroy();
   }
 }
-
-seed();

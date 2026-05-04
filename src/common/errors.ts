@@ -44,3 +44,36 @@ export class NotEnoughItemsInStockError extends DomainError {
     });
   }
 }
+
+export class EntityNotFoundError extends DomainError {
+  readonly code = "CANNOT_FIND_ENTITY";
+  readonly httpStatus = 404;
+
+  constructor(entityName: string, details?: Record<string, unknown>) {
+    super(`Cannot find entity '${entityName}'`, {
+      entityName,
+      ...details,
+    });
+  }
+}
+
+export class DuplicateEntityCreationError extends DomainError {
+  readonly code = "DUPLICATE_ENTITY_CREATION";
+  readonly httpStatus = 409;
+
+  constructor(entityName: string, details?: Record<string, unknown>) {
+    super(`Such '${entityName}' entity already exists`, {
+      entityName,
+      ...details,
+    });
+  }
+}
+
+export class IncorrectPasswordError extends DomainError {
+  readonly code = "INCORRECT_PASSWORD";
+  readonly httpStatus = 401;
+
+  constructor(details?: Record<string, unknown>) {
+    super("Incorrect password", details);
+  }
+}
