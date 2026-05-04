@@ -1,16 +1,15 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { OrdersService } from "./orders.service";
-import { getRepositoryToken } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
-import Order from "./order.entity";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
+import { UNIT_OF_WORK } from "src/common/unit-of-work";
+import { ORDERS_REPOSITORY } from "./orders.repository";
 
 describe("OrdersService", () => {
   let service: OrdersService;
-  const orderRepositoryMock = {};
-  const dataSourceMock = {
+  const uowMock = {
     transaction: jest.fn(),
   };
+  const ordersRepoMock = {};
   const rabbitMqServiceMock = {
     send: jest.fn(),
   };
@@ -20,12 +19,12 @@ describe("OrdersService", () => {
       providers: [
         OrdersService,
         {
-          provide: getRepositoryToken(Order),
-          useValue: orderRepositoryMock,
+          provide: UNIT_OF_WORK,
+          useValue: uowMock,
         },
         {
-          provide: DataSource,
-          useValue: dataSourceMock,
+          provide: ORDERS_REPOSITORY,
+          useValue: ordersRepoMock,
         },
         {
           provide: RabbitMqService,
