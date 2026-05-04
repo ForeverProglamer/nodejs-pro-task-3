@@ -2,10 +2,38 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/http-exception.filter";
 
+import * as cookieParser from "cookie-parser";
+import { ValidationPipe } from "@nestjs/common";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { REFRESH_TOKEN_COOKIE } from "./auth/jwt-auth.guard";
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   app.enableShutdownHooks();
+
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.use(cookieParser());
+
+  app.setGlobalPrefix("api");
+
+  const config = new DocumentBuilder()
+    .setTitle("E-commerce API")
+    .setDescription(
+      "API for managing orders and products of the e-commerce platform.",
+    )
+    .setVersion("1.0")
+    .addBearerAuth()
+    .addCookieAuth(
+      REFRESH_TOKEN_COOKIE,
+      { type: "apiKey", in: "cookie" },
+      "refresh-token",
+    )
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api/docs", app, documentFactory);
+
   await app.listen(process.env.PORT ?? 3000);
 
   // Help dev restarts inside containers release the port promptly.
