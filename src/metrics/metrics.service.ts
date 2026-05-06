@@ -1,22 +1,38 @@
 import { Injectable } from "@nestjs/common";
 import {
   Counter,
-  Gauge,
   Histogram,
   Registry,
   collectDefaultMetrics,
 } from "prom-client";
+
+export type OrderCreateResult =
+  | "success"
+  | "duplicate"
+  | "product_not_found"
+  | "not_enough_stock"
+  | "error";
+
+export type OrderProcessResult =
+  | "success"
+  | "duplicate"
+  | "retry"
+  | "dlq"
+  | "error";
+
+export type MessageResult = "success" | "error";
 
 @Injectable()
 export class MetricsService {
   readonly registry: Registry;
   private readonly httpRequestsTotal: Counter<string>;
   private readonly httpRequestDurationSeconds: Histogram<string>;
-  private readonly providerRequestsTotal: Counter<string>;
-  private readonly providerRequestDurationSeconds: Histogram<string>;
-  private readonly paymentRetriesTotal: Counter<string>;
-  private readonly queueDepthGauge: Gauge<string>;
-  private readonly queueInFlightGauge: Gauge<string>;
+  private readonly ordersCreatedTotal: Counter<string>;
+  private readonly ordersProcessedTotal: Counter<string>;
+  private readonly orderProcessingDurationSeconds: Histogram<string>;
+  private readonly orderProcessingRetriesTotal: Counter<string>;
+  private readonly rabbitmqMessagesPublishedTotal: Counter<string>;
+  private readonly rabbitmqMessagesConsumedTotal: Counter<string>;
 
   constructor() {
     this.registry = new Registry();
@@ -37,39 +53,45 @@ export class MetricsService {
       registers: [this.registry],
     });
 
-    this.providerRequestsTotal = new Counter({
-      name: "provider_requests_total",
-      help: "Total provider API requests",
-      labelNames: ["provider", "status"],
+    this.ordersCreatedTotal = new Counter({
+      name: "orders_created_total",
+      help: "Total order creation attempts by result",
+      labelNames: ["result"],
       registers: [this.registry],
     });
 
-    this.providerRequestDurationSeconds = new Histogram({
-      name: "provider_request_duration_seconds",
-      help: "Provider API latency in seconds",
-      labelNames: ["provider", "status"],
-      buckets: [0.05, 0.1, 0.2, 0.5, 1, 2, 5],
+    this.ordersProcessedTotal = new Counter({
+      name: "orders_processed_total",
+      help: "Total order processing attempts by result",
+      labelNames: ["result"],
       registers: [this.registry],
     });
 
-    this.paymentRetriesTotal = new Counter({
-      name: "payment_retries_total",
-      help: "Retry count for provider requests",
-      labelNames: ["provider"],
+    this.orderProcessingDurationSeconds = new Histogram({
+      name: "order_processing_duration_seconds",
+      help: "Time between message creation and final order processing result",
+      labelNames: ["result"],
+      buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
       registers: [this.registry],
     });
 
-    this.queueDepthGauge = new Gauge({
-      name: "queue_depth",
-      help: "Current queue depth",
-      labelNames: ["queue"],
+    this.orderProcessingRetriesTotal = new Counter({
+      name: "order_processing_retries_total",
+      help: "Total order processing retries scheduled by the worker",
       registers: [this.registry],
     });
 
-    this.queueInFlightGauge = new Gauge({
-      name: "queue_in_flight",
-      help: "Current queue in-flight jobs",
-      labelNames: ["queue"],
+    this.rabbitmqMessagesPublishedTotal = new Counter({
+      name: "rabbitmq_messages_published_total",
+      help: "Total RabbitMQ messages published by the application",
+      labelNames: ["queue", "result"],
+      registers: [this.registry],
+    });
+
+    this.rabbitmqMessagesConsumedTotal = new Counter({
+      name: "rabbitmq_messages_consumed_total",
+      help: "Total RabbitMQ messages consumed by the application",
+      labelNames: ["queue", "result"],
       registers: [this.registry],
     });
   }
@@ -88,28 +110,31 @@ export class MetricsService {
     );
   }
 
-  startProviderTimer(provider: string): (status: "ok" | "error") => void {
-    const end = this.providerRequestDurationSeconds.startTimer({
-      provider,
-      status: "ok",
-    });
-
-    return (status: "ok" | "error") => {
-      end({ provider, status });
-      this.providerRequestsTotal.inc({ provider, status });
-    };
+  incrementOrderCreated(result: OrderCreateResult) {
+    this.ordersCreatedTotal.inc({ result });
   }
 
-  incrementRetry(provider: string) {
-    this.paymentRetriesTotal.inc({ provider });
+  incrementOrderProcessed(result: OrderProcessResult) {
+    this.ordersProcessedTotal.inc({ result });
   }
 
-  setQueueDepth(queue: string, value: number) {
-    this.queueDepthGauge.set({ queue }, value);
+  observeOrderProcessing(result: OrderProcessResult, durationMs: number) {
+    this.orderProcessingDurationSeconds.observe(
+      { result },
+      durationMs / 1000,
+    );
   }
 
-  setQueueInFlight(queue: string, value: number) {
-    this.queueInFlightGauge.set({ queue }, value);
+  incrementOrderProcessingRetry() {
+    this.orderProcessingRetriesTotal.inc();
+  }
+
+  incrementRabbitMqMessagePublished(queue: string, result: MessageResult) {
+    this.rabbitmqMessagesPublishedTotal.inc({ queue, result });
+  }
+
+  incrementRabbitMqMessageConsumed(queue: string, result: MessageResult) {
+    this.rabbitmqMessagesConsumedTotal.inc({ queue, result });
   }
 
   async getMetricsText(): Promise<string> {

@@ -2,8 +2,21 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
-  - job_name: 'metrics-baseline'
+  - job_name: 'api'
     metrics_path: /api/metrics
     static_configs:
       - targets: ['api:3000']
-      # - targets: ['api:$TARGET_PORT']
+
+  - job_name: 'rabbitmq'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['rabbitmq:15692']
+
+  - job_name: 'rabbitmq-queues'
+    metrics_path: /metrics/detailed
+    params:
+      family:
+        - queue_coarse_metrics
+        - queue_consumer_count
+    static_configs:
+      - targets: ['rabbitmq:15692']

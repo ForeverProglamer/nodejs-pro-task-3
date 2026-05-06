@@ -1,70 +1,158 @@
 {
-  "title": "Metrics Baseline",
+  "title": "E-commerce Metrics",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
+  "refresh": "15s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
   "panels": [
     {
       "type": "timeseries",
-      "title": "API RPS",
+      "title": "HTTP request rate",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{route=~\"/api/orders.*|/api/payments.*\"}[1m]))",
+          "expr": "sum(rate(http_requests_total[1m])) by (method, route, status)",
+          "legendFormat": "{{method}} {{route}} {{status}}",
           "refId": "A"
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "API p95 latency",
+      "title": "HTTP p95 latency",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, method, route))",
+          "legendFormat": "{{method}} {{route}}",
           "refId": "A"
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "API error rate",
+      "title": "HTTP error rate",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{status=~\"5..|4..\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1)",
+          "expr": "sum(rate(http_requests_total{status=~\"4..|5..\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1)",
+          "legendFormat": "errors / requests",
           "refId": "A"
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Queue depth",
+      "title": "Order creation rate",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "queue_depth",
+          "expr": "sum(rate(orders_created_total[5m])) by (result)",
+          "legendFormat": "{{result}}",
           "refId": "A"
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Provider p95 latency",
+      "title": "Order processing rate",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(provider_request_duration_seconds_bucket[5m])) by (le, provider))",
+          "expr": "sum(rate(orders_processed_total[5m])) by (result)",
+          "legendFormat": "{{result}}",
           "refId": "A"
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Provider error rate",
+      "title": "Order processing p95 duration",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
       "targets": [
         {
-          "expr": "sum(rate(provider_requests_total{status=\"error\"}[5m])) by (provider) / clamp_min(sum(rate(provider_requests_total[5m])) by (provider), 1)",
+          "expr": "histogram_quantile(0.95, sum(rate(order_processing_duration_seconds_bucket[5m])) by (le, result))",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "RabbitMQ app publish rate",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(rabbitmq_messages_published_total[5m])) by (queue, result)",
+          "legendFormat": "{{queue}} {{result}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "RabbitMQ app consume rate",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(rabbitmq_messages_consumed_total[5m])) by (queue, result)",
+          "legendFormat": "{{queue}} {{result}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Order processing retries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(order_processing_retries_total[5m]))",
+          "legendFormat": "retries",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "RabbitMQ queue depth",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "rabbitmq_detailed_queue_messages_ready{queue=~\"orders\\\\.process|orders\\\\.dlq\"}",
+          "legendFormat": "{{queue}} ready",
+          "refId": "A"
+        },
+        {
+          "expr": "rabbitmq_detailed_queue_messages_unacked{queue=~\"orders\\\\.process|orders\\\\.dlq\"}",
+          "legendFormat": "{{queue}} unacked",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "RabbitMQ consumers",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "targets": [
+        {
+          "expr": "rabbitmq_detailed_queue_consumers{queue=~\"orders\\\\.process|orders\\\\.dlq\"}",
+          "legendFormat": "{{queue}} consumers",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Node.js heap used",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "targets": [
+        {
+          "expr": "ecomm_nodejs_heap_size_used_bytes",
+          "legendFormat": "heap used",
           "refId": "A"
         }
       ]

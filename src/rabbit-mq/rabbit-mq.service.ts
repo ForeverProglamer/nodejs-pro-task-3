@@ -9,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 import { Channel, ChannelModel } from "amqplib";
 import * as amqplib from "amqplib";
 import { formatError } from "src/common/utils";
+import { MetricsService } from "src/metrics/metrics.service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Message = Record<string, any> & {
@@ -23,7 +24,10 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   private connection: ChannelModel | null = null;
   private channel: Channel | null = null;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly metricsService: MetricsService,
+  ) {}
 
   getChannel() {
     if (!this.channel) throw new Error("Channel is not created!");
@@ -77,11 +81,21 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
   }
 
   send(queue: string, message: Message): boolean {
-    return this.getChannel().sendToQueue(
-      queue,
-      Buffer.from(JSON.stringify(message)),
-      { persistent: true, messageId: message.messageId },
-    );
+    try {
+      const result = this.getChannel().sendToQueue(
+        queue,
+        Buffer.from(JSON.stringify(message)),
+        { persistent: true, messageId: message.messageId },
+      );
+      this.metricsService.incrementRabbitMqMessagePublished(
+        queue,
+        result ? "success" : "error",
+      );
+      return result;
+    } catch (error) {
+      this.metricsService.incrementRabbitMqMessagePublished(queue, "error");
+      throw error;
+    }
   }
 
   async consume<T extends Message>(
@@ -96,7 +110,12 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
         try {
           const message = JSON.parse(msg.content.toString());
           await handler(message, () => channel.ack(msg, false));
+          this.metricsService.incrementRabbitMqMessageConsumed(
+            queue,
+            "success",
+          );
         } catch (error) {
+          this.metricsService.incrementRabbitMqMessageConsumed(queue, "error");
           this.logger.error(
             `Unhandled worker error in queue '${queue}': ${formatError(error)}`,
           );

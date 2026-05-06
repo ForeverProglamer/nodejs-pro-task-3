@@ -52,6 +52,7 @@ services:
       start_period: 10s
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     networks: [private]
 
   migrate:
@@ -83,6 +84,7 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
       - api
+      - rabbitmq
     networks: [private]
 
   grafana:
