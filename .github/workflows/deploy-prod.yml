@@ -48,5 +48,5 @@ jobs:
         uses: ./.github/actions/wait-for-health
         with:
           url: http://localhost:${{ vars.API_PORT }}/api/health
-          attempts: 8
-          sleep: 2
+          attempts: 10
+          sleep: 3
