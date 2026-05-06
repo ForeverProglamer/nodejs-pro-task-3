@@ -74,6 +74,30 @@ services:
         condition: service_completed_successfully
     networks: [private]
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - api
+    networks: [private]
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    restart: unless-stopped
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "$127.0.0.1:{GRAFANA_PORT:-3005}:3000"
+    depends_on:
+      - prometheus
+    networks: [public, private]
+
 volumes:
   db_data:
   rabbitmq_data:

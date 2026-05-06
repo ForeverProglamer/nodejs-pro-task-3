@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: metrics-baseline
+    orgId: 1
+    folder: "Metrics Baseline"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

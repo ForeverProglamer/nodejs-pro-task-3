@@ -22,6 +22,10 @@ services:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_WEB_PORT:-15672}:15672"
 
+  prometheus:
+    ports:
+      - "${PROMETHEUS_PORT:-9091}:9090"
+
 volumes:
   node_modules:
 
