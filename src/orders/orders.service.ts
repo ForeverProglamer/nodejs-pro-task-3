@@ -31,8 +31,6 @@ export class OrdersService {
   ) {}
 
   async createOrder(userId: UUID, dto: CreateOrderDto, idempotencyKey: UUID) {
-    // TODO: ensure `dto.items` do not have duplicates, cause here we assume
-    // that they don't
     this.logger.log("Creating order", { userId, idempotencyKey, dto });
     try {
       const result = await this.persistOrder(userId, dto, idempotencyKey);

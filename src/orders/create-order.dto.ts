@@ -1,5 +1,11 @@
 import { UUID } from "crypto";
-import { IsUUID, IsInt, ValidateNested, Min } from "class-validator";
+import {
+  IsUUID,
+  IsInt,
+  ValidateNested,
+  Min,
+  ArrayUnique,
+} from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
 
@@ -16,6 +22,7 @@ export class OrderItemDto {
 
 export class CreateOrderDto {
   @ApiProperty({ type: [OrderItemDto] })
+  @ArrayUnique((item: OrderItemDto) => item.id)
   @ValidateNested()
   @Type(() => OrderItemDto)
   items: OrderItemDto[];
