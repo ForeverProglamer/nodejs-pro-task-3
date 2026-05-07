@@ -2,7 +2,16 @@ apiVersion: 1
 providers:
   - name: metrics-baseline
     orgId: 1
-    folder: "Metrics Baseline"
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+
+  - name: rabbitmq-overview
+    orgId: 1
+    folder: ""
     type: file
     disableDeletion: false
     editable: true
