@@ -101,7 +101,7 @@ jobs:
           echo "API_PORT=$API_PORT" >> .env
           echo "JWT_AT_SECRET=$JWT_AT_SECRET" >> .env
           echo "JWT_RT_SECRET=$JWT_RT_SECRET" >> .env
-          docker compose -f compose.prod.yml -p stage up -d
+          docker compose -f compose.prod.yml --profile seed -p stage up -d
 
       - name: Post-deploy test
         uses: ./.github/actions/wait-for-health
