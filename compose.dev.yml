@@ -1,6 +1,7 @@
 services:
   api:
     build:
+      context: .
       target: dev
     command: npm run start:dev:docker
     environment:
@@ -12,6 +13,16 @@ services:
     tty: true
     stdin_open: true
     init: true
+
+  migrate:
+    build:
+      context: .
+      target: prod
+
+  seed:
+    build:
+      context: .
+      target: prod
 
   postgres:
     ports:

@@ -95,8 +95,8 @@ npm run compose:down
 One-off jobs:
 
 ```bash
-docker compose run --rm migrate
-docker compose --profile seed run --rm seed
+docker compose -f compose.yml -f compose.dev.yml run --rm migrate
+docker compose -f compose.yml -f compose.dev.yml --profile seed run --rm seed
 ```
 
 The default seed creates:
@@ -189,8 +189,8 @@ docker compose logs -f rabbitmq
 For deployed environments, inspect logs on the VM with the matching Compose project:
 
 ```bash
-docker compose -f compose.prod.yml -p stage logs -f api
-docker compose -f compose.prod.yml -p prod logs -f api
+docker compose -f compose.yml -p stage logs -f api
+docker compose -f compose.yml -p prod logs -f api
 ```
 
 ## CI/CD
