@@ -22,10 +22,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-        restart: true
       rabbitmq:
         condition: service_healthy
-        restart: true
       migrate:
         condition: service_completed_successfully
     networks: [public, private]
@@ -69,17 +67,18 @@ services:
 
   migrate:
     image: ${IMAGE:-ecommerce-platform-api:local}
+    restart: "no"
     command: npm run prod:db:migrate
     env_file: .env
     depends_on:
       postgres:
         condition: service_healthy
-        restart: true
     networks: [private]
 
   seed:
     profiles: [seed]
     image: ${IMAGE:-ecommerce-platform-api:local}
+    restart: "no"
     command: npm run prod:seed
     env_file: .env
     depends_on:
@@ -98,10 +97,8 @@ services:
     depends_on:
       api:
         condition: service_healthy
-        restart: true
       rabbitmq:
         condition: service_healthy
-        restart: true
     networks: [private]
 
   grafana:
