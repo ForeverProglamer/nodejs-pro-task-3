@@ -23,7 +23,7 @@ This project uses a GitHub Actions CI/CD pipeline with separate stages for PR va
   - runs on a self-hosted runner labeled `stage`
   - uses the GitHub `stage` Environment
   - pulls the exact image built in the previous job from GHCR
-  - deploys it with `docker compose -f compose.prod.yml -p stage up -d`
+  - deploys it with `docker compose -f compose.yml -p stage up -d`
   - performs a post-deploy smoke check against `http://localhost:${API_PORT}/api/health`
 
 ## `deploy-prod.yml`
@@ -34,7 +34,7 @@ This project uses a GitHub Actions CI/CD pipeline with separate stages for PR va
 - Uses the GitHub `production` Environment with manual approval / reviewers configured in GitHub
 - Pulls and deploys the exact same Docker image that was built earlier, so production does not rebuild the artifact
 - Uses `concurrency: production` to prevent parallel production deployments
-- Deploys with `docker compose -f compose.prod.yml -p prod up -d`
+- Deploys with `docker compose -f compose.yml -p prod up -d`
 - Verifies the deployment with the same `/health` smoke check
 
 ## Release Artifact
@@ -55,7 +55,7 @@ Production deployment uses the previously built image from the manifest. It does
 - Deploy target: Oracle Cloud VM with Docker Compose
 - Reverse proxy: Caddy
 - Stage and production are separated by different GitHub Environments and different Compose project names: `stage` and `prod`
-- Runtime definition: [`compose.prod.yml`](../compose.prod.yml)
+- Runtime definition: [`compose.yml`](../compose.yml)
 - Health-check action: [`.github/actions/wait-for-health/action.yml`](../.github/actions/wait-for-health/action.yml)
 
 ## End-to-End Flow

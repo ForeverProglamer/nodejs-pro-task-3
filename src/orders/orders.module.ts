@@ -12,6 +12,7 @@ import { OrdersRepositoryProvider } from "./orders.repository";
 import { ProductsModule } from "src/products/products.module";
 import { OrderItemsRepositoryProvider } from "./order-items.repository";
 import { CommonModule } from "src/common/common.module";
+import { MetricsModule } from "src/metrics/metrics.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CommonModule } from "src/common/common.module";
     RabbitMqModule,
     ProductsModule,
     CommonModule,
+    MetricsModule,
   ],
   controllers: [OrdersController],
   providers: [
