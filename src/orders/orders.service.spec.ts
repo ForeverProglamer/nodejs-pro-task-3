@@ -3,6 +3,7 @@ import { OrdersService } from "./orders.service";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { UNIT_OF_WORK } from "src/common/unit-of-work";
 import { ORDERS_REPOSITORY } from "./orders.repository";
+import { MetricsService } from "src/metrics/metrics.service";
 
 describe("OrdersService", () => {
   let service: OrdersService;
@@ -12,6 +13,9 @@ describe("OrdersService", () => {
   const ordersRepoMock = {};
   const rabbitMqServiceMock = {
     send: jest.fn(),
+  };
+  const metricsServiceMock = {
+    incrementOrderCreated: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -29,6 +33,10 @@ describe("OrdersService", () => {
         {
           provide: RabbitMqService,
           useValue: rabbitMqServiceMock,
+        },
+        {
+          provide: MetricsService,
+          useValue: metricsServiceMock,
         },
       ],
     }).compile();

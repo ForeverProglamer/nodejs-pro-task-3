@@ -12,6 +12,9 @@ NestJS backend API for an e-commerce order-processing flow. The project is built
 - Health checks:
   - https://c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org/api/health
   - https://stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org/api/health
+- Grafana UI:
+  - https://grafana.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org
+  - https://grafana-stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org
 
 The public VM uses Caddy as a reverse proxy in front of two Docker Compose deployments:
 
@@ -24,6 +27,21 @@ c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
 stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
+}
+
+# Grafana
+grafana.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
+    basic_auth {
+        reviewer <hashed-pass>
+    }
+    reverse_proxy 127.0.0.1:8001
+}
+
+grafana-stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
+    basic_auth {
+        reviewer <hashed-pass>
+    }
+    reverse_proxy 127.0.0.1:8000
 }
 ```
 
@@ -95,8 +113,8 @@ npm run compose:down
 One-off jobs:
 
 ```bash
-docker compose run --rm migrate
-docker compose --profile seed run --rm seed
+docker compose -f compose.yml -f compose.dev.yml run --rm migrate
+docker compose -f compose.yml -f compose.dev.yml --profile seed run --rm seed
 ```
 
 The default seed creates:
@@ -189,8 +207,8 @@ docker compose logs -f rabbitmq
 For deployed environments, inspect logs on the VM with the matching Compose project:
 
 ```bash
-docker compose -f compose.prod.yml -p stage logs -f api
-docker compose -f compose.prod.yml -p prod logs -f api
+docker compose -f compose.yml -p stage logs -f api
+docker compose -f compose.yml -p prod logs -f api
 ```
 
 ## CI/CD

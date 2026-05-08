@@ -1,0 +1,19 @@
+apiVersion: 1
+providers:
+  - name: metrics-baseline
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/dashboards
+
+  - name: rabbitmq-overview
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/dashboards

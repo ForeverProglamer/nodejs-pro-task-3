@@ -4,6 +4,7 @@ import { OrdersService } from "./orders.service";
 import { RabbitMqService } from "src/rabbit-mq/rabbit-mq.service";
 import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
+import { MetricsService } from "src/metrics/metrics.service";
 
 describe("OrdersWorkerService", () => {
   let service: OrdersWorkerService;
@@ -19,6 +20,11 @@ describe("OrdersWorkerService", () => {
   };
   const dataSourceMock = {
     transaction: jest.fn(),
+  };
+  const metricsServiceMock = {
+    incrementOrderProcessed: jest.fn(),
+    incrementOrderProcessingRetry: jest.fn(),
+    observeOrderProcessing: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -40,6 +46,10 @@ describe("OrdersWorkerService", () => {
         {
           provide: DataSource,
           useValue: dataSourceMock,
+        },
+        {
+          provide: MetricsService,
+          useValue: metricsServiceMock,
         },
       ],
     }).compile();
