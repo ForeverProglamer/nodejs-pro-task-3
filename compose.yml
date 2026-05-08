@@ -94,7 +94,8 @@ services:
     volumes:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
     ports:
       - "127.0.0.1:${GRAFANA_PORT:-8000}:3000"
     depends_on:
@@ -105,6 +106,7 @@ volumes:
   db_data:
   rabbitmq_data:
   prometheus_data:
+  grafana_data:
 
 networks:
   private:

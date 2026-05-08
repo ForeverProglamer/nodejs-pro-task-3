@@ -7,7 +7,7 @@ providers:
     disableDeletion: false
     editable: true
     options:
-      path: /var/lib/grafana/dashboards
+      path: /etc/grafana/dashboards
 
   - name: rabbitmq-overview
     orgId: 1
@@ -16,4 +16,4 @@ providers:
     disableDeletion: false
     editable: true
     options:
-      path: /var/lib/grafana/dashboards
+      path: /etc/grafana/dashboards
