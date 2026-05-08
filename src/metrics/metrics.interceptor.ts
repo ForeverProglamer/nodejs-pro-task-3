@@ -31,7 +31,7 @@ export class MetricsInterceptor implements NestInterceptor {
       const durationMs = Number(finishedAt - startedAt) / 1_000_000;
 
       // Determine Route: prioritize the parameterized path
-      const route = request.route?.path || request.url || "unknown";
+      const route = request.route?.path ?? "unknown";
 
       let status: number;
       if (error instanceof HttpException) {

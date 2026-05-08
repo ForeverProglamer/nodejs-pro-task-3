@@ -20,7 +20,7 @@ export type OrderProcessResult =
   | "dlq"
   | "error";
 
-export type MessageResult = "success" | "error";
+export type MessageResult = "success" | "buffer_full" | "error";
 
 @Injectable()
 export class MetricsService {
@@ -119,10 +119,7 @@ export class MetricsService {
   }
 
   observeOrderProcessing(result: OrderProcessResult, durationMs: number) {
-    this.orderProcessingDurationSeconds.observe(
-      { result },
-      durationMs / 1000,
-    );
+    this.orderProcessingDurationSeconds.observe({ result }, durationMs / 1000);
   }
 
   incrementOrderProcessingRetry() {

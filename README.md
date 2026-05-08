@@ -20,13 +20,21 @@ The public VM uses Caddy as a reverse proxy in front of two Docker Compose deplo
 
 ```caddyfile
 c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
-	encode zstd gzip
-	reverse_proxy 127.0.0.1:3001
+    encode zstd gzip
+
+    @metrics path /api/metrics
+    respond @metrics 403
+
+    reverse_proxy 127.0.0.1:3001
 }
 
 stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
-	encode zstd gzip
-	reverse_proxy 127.0.0.1:3000
+    encode zstd gzip
+
+    @metrics path /api/metrics
+    respond @metrics 403
+
+    reverse_proxy 127.0.0.1:3000
 }
 
 # Grafana

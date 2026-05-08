@@ -89,7 +89,7 @@ export class RabbitMqService implements OnModuleInit, OnModuleDestroy {
       );
       this.metricsService.incrementRabbitMqMessagePublished(
         queue,
-        result ? "success" : "error",
+        result ? "success" : "buffer_full",
       );
       return result;
     } catch (error) {
