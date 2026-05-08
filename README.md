@@ -12,6 +12,9 @@ NestJS backend API for an e-commerce order-processing flow. The project is built
 - Health checks:
   - https://c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org/api/health
   - https://stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org/api/health
+- Grafana UI:
+  - https://grafana.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org
+  - https://grafana-stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org
 
 The public VM uses Caddy as a reverse proxy in front of two Docker Compose deployments:
 
@@ -27,14 +30,18 @@ stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
 }
 
 # Grafana
-c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org:8001 {
-	encode zstd gzip
-	reverse_proxy 127.0.0.1:8001
+grafana.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
+    basic_auth {
+        reviewer <hashed-pass>
+    }
+    reverse_proxy 127.0.0.1:8001
 }
 
-stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org:8000 {
-	encode zstd gzip
-	reverse_proxy 127.0.0.1:8000
+grafana-stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
+    basic_auth {
+        reviewer <hashed-pass>
+    }
+    reverse_proxy 127.0.0.1:8000
 }
 ```
 
