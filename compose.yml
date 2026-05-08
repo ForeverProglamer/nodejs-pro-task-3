@@ -96,7 +96,7 @@ services:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "127.0.0.1:${GRAFANA_PORT:-3005}:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-8000}:3000"
     depends_on:
       - prometheus
     networks: [public, private]

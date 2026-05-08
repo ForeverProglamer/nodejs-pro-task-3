@@ -25,6 +25,17 @@ stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
 }
+
+# Grafana
+c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org:8001 {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8001
+}
+
+stage.c94f026a9d5e40278b2265f2fc8d3d56.dpdns.org:8000 {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8000
+}
 ```
 
 ## Main Business Flow
